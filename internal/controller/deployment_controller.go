@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
@@ -14,6 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	"github.com/danieldonoghue/vault-sync-operator/internal/metrics"
 	"github.com/danieldonoghue/vault-sync-operator/internal/vault"
 )
 
@@ -92,10 +94,17 @@ func (r *DeploymentReconciler) handleDeletion(ctx context.Context, deployment *a
 		if exists && vaultPath != "" {
 			// Delete the secret from Vault
 			if err := r.VaultClient.DeleteSecret(ctx, vaultPath); err != nil {
-				log.Error(err, "failed to delete secret from vault", "path", vaultPath)
+				log.Error(err, "failed to delete secret from vault",
+					"path", vaultPath,
+					"deployment", deployment.Name,
+					"namespace", deployment.Namespace,
+					"error_details", err.Error())
 				return ctrl.Result{}, err
 			}
-			log.Info("successfully deleted secret from vault", "path", vaultPath)
+			log.Info("successfully deleted secret from vault",
+				"path", vaultPath,
+				"deployment", deployment.Name,
+				"namespace", deployment.Namespace)
 		}
 
 		// Remove finalizer
@@ -110,6 +119,13 @@ func (r *DeploymentReconciler) handleDeletion(ctx context.Context, deployment *a
 func (r *DeploymentReconciler) syncSecretsToVault(ctx context.Context, deployment *appsv1.Deployment) (ctrl.Result, error) {
 	log := r.Log.WithValues("deployment", deployment.Name, "namespace", deployment.Namespace)
 
+	// Start timing the operation
+	start := time.Now()
+	defer func() {
+		duration := time.Since(start).Seconds()
+		metrics.SecretsyncDuration.WithLabelValues(deployment.Namespace, deployment.Name).Observe(duration)
+	}()
+
 	// Get the vault path (we already know it exists from reconcile check)
 	vaultPath := deployment.Annotations[VaultPathAnnotation]
 
@@ -121,25 +137,46 @@ func (r *DeploymentReconciler) syncSecretsToVault(ctx context.Context, deploymen
 
 	if hasCustomConfig && secretsToSync != "" {
 		// Use custom configuration
+		log.Info("using custom secret configuration", "config", secretsToSync)
 		vaultData, err = r.syncCustomSecrets(ctx, deployment, secretsToSync)
 		if err != nil {
+			metrics.SecretsyncAttempts.WithLabelValues(deployment.Namespace, deployment.Name, "failed").Inc()
+			log.Error(err, "failed to sync custom secrets")
 			return ctrl.Result{}, err
 		}
 	} else {
 		// Auto-discover secrets from deployment pod template
+		log.Info("using auto-discovery mode")
 		vaultData, err = r.syncAutoDiscoveredSecrets(ctx, deployment)
 		if err != nil {
+			metrics.SecretsyncAttempts.WithLabelValues(deployment.Namespace, deployment.Name, "failed").Inc()
+			log.Error(err, "failed to sync auto-discovered secrets")
 			return ctrl.Result{}, err
 		}
 	}
 
+	// Log what we're about to sync
+	log.Info("syncing secrets to vault",
+		"path", vaultPath,
+		"secret_count", len(vaultData),
+		"mode", map[bool]string{true: "custom", false: "auto-discovery"}[hasCustomConfig && secretsToSync != ""])
+
 	// Write to Vault
 	if err := r.VaultClient.WriteSecret(ctx, vaultPath, vaultData); err != nil {
-		log.Error(err, "failed to write secret to vault", "path", vaultPath)
+		metrics.SecretsyncAttempts.WithLabelValues(deployment.Namespace, deployment.Name, "failed").Inc()
+		log.Error(err, "failed to write secret to vault",
+			"path", vaultPath,
+			"secret_count", len(vaultData),
+			"error_details", err.Error())
 		return ctrl.Result{}, fmt.Errorf("failed to write secret to vault: %w", err)
 	}
 
-	log.Info("successfully synced secrets to vault", "path", vaultPath, "secrets", len(vaultData))
+	// Success metrics and logging
+	metrics.SecretsyncAttempts.WithLabelValues(deployment.Namespace, deployment.Name, "success").Inc()
+	log.Info("successfully synced secrets to vault",
+		"path", vaultPath,
+		"secret_count", len(vaultData),
+		"duration_seconds", time.Since(start).Seconds())
 	return ctrl.Result{}, nil
 }
 
@@ -150,9 +187,16 @@ func (r *DeploymentReconciler) syncCustomSecrets(ctx context.Context, deployment
 	// Parse the secrets annotation (JSON format)
 	var secretConfigs []SecretConfig
 	if err := json.Unmarshal([]byte(secretsConfig), &secretConfigs); err != nil {
-		log.Error(err, "failed to parse secrets annotation", "annotation", secretsConfig)
+		metrics.ConfigParseErrors.WithLabelValues(deployment.Namespace, deployment.Name, "json_parse_error").Inc()
+		log.Error(err, "failed to parse secrets annotation",
+			"annotation", secretsConfig,
+			"error_type", "json_parse_error",
+			"deployment", deployment.Name,
+			"namespace", deployment.Namespace)
 		return nil, fmt.Errorf("failed to parse secrets annotation: %w", err)
 	}
+
+	log.Info("parsed custom secret configuration", "secret_configs", len(secretConfigs))
 
 	// Collect all secret data
 	vaultData := make(map[string]interface{})
@@ -165,7 +209,11 @@ func (r *DeploymentReconciler) syncCustomSecrets(ctx context.Context, deployment
 		}
 
 		if err := r.Get(ctx, secretKey, secret); err != nil {
-			log.Error(err, "failed to get secret", "secret", secretConfig.Name)
+			metrics.SecretNotFoundErrors.WithLabelValues(deployment.Namespace, secretConfig.Name).Inc()
+			log.Error(err, "failed to get secret",
+				"secret", secretConfig.Name,
+				"namespace", deployment.Namespace,
+				"deployment", deployment.Name)
 			return nil, fmt.Errorf("failed to get secret %s: %w", secretConfig.Name, err)
 		}
 
@@ -179,7 +227,13 @@ func (r *DeploymentReconciler) syncCustomSecrets(ctx context.Context, deployment
 				}
 				vaultData[vaultKey] = string(data)
 			} else {
-				log.Error(fmt.Errorf("key not found in secret"), "key not found", "secret", secretConfig.Name, "key", key)
+				metrics.SecretKeyMissingError.WithLabelValues(deployment.Namespace, secretConfig.Name, key).Inc()
+				log.Error(fmt.Errorf("key not found in secret"), "key not found",
+					"secret", secretConfig.Name,
+					"key", key,
+					"available_keys", getSecretKeys(secret.Data),
+					"namespace", deployment.Namespace,
+					"deployment", deployment.Name)
 				return nil, fmt.Errorf("key %s not found in secret %s", key, secretConfig.Name)
 			}
 		}
@@ -202,6 +256,9 @@ func (r *DeploymentReconciler) syncAutoDiscoveredSecrets(ctx context.Context, de
 
 	log.Info("auto-discovered secrets", "secrets", secretNames)
 
+	// Track discovered secrets metric
+	metrics.SecretsDiscovered.WithLabelValues(deployment.Namespace, deployment.Name).Set(float64(len(secretNames)))
+
 	// Collect all secret data
 	vaultData := make(map[string]interface{})
 
@@ -213,7 +270,11 @@ func (r *DeploymentReconciler) syncAutoDiscoveredSecrets(ctx context.Context, de
 		}
 
 		if err := r.Get(ctx, secretKey, secret); err != nil {
-			log.Error(err, "failed to get auto-discovered secret", "secret", secretName)
+			metrics.SecretNotFoundErrors.WithLabelValues(deployment.Namespace, secretName).Inc()
+			log.Error(err, "failed to get auto-discovered secret",
+				"secret", secretName,
+				"namespace", deployment.Namespace,
+				"deployment", deployment.Name)
 			return nil, fmt.Errorf("failed to get secret %s: %w", secretName, err)
 		}
 
@@ -273,6 +334,15 @@ func (r *DeploymentReconciler) extractSecretNamesFromPodTemplate(podTemplate cor
 	}
 
 	return secretNames
+}
+
+// getSecretKeys returns a slice of keys available in a secret's data
+func getSecretKeys(data map[string][]byte) []string {
+	keys := make([]string, 0, len(data))
+	for key := range data {
+		keys = append(keys, key)
+	}
+	return keys
 }
 
 // SecretConfig defines which keys from a secret to sync to Vault

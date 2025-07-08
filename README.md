@@ -65,6 +65,58 @@ vault write auth/kubernetes/role/vault-sync-operator \
     ttl=24h
 ```
 
+## Monitoring and Observability
+
+The Vault Sync Operator provides comprehensive monitoring and error handling capabilities to ensure reliable operation.
+
+### Health and Readiness Checks
+
+The operator exposes standard Kubernetes health and readiness endpoints:
+
+- **Health Check** (`/healthz`): Validates connectivity to Vault server
+- **Readiness Check** (`/readyz`): Ensures Vault authentication is working correctly
+
+These endpoints are automatically configured and can be used by Kubernetes for container health monitoring.
+
+### Prometheus Metrics
+
+The operator exposes Prometheus metrics on port `:8080` by default. Available metrics include:
+
+#### Sync Operation Metrics
+- `vault_sync_operator_sync_attempts_total`: Total number of secret sync attempts (labeled by namespace, deployment, result)
+- `vault_sync_operator_sync_duration_seconds`: Duration of secret sync operations in seconds
+- `vault_sync_operator_secrets_discovered`: Number of secrets auto-discovered in deployments
+
+#### Error Metrics
+- `vault_sync_operator_secret_not_found_errors_total`: Kubernetes secrets that couldn't be found
+- `vault_sync_operator_secret_key_missing_errors_total`: Missing keys within secrets
+- `vault_sync_operator_config_parse_errors_total`: Configuration parsing errors
+- `vault_sync_operator_vault_write_errors_total`: Vault write errors (categorized by error type)
+
+#### Authentication Metrics
+- `vault_sync_operator_auth_attempts_total`: Vault authentication attempts and results
+
+### Error Handling and Logging
+
+The operator provides detailed error reporting for common failure scenarios:
+
+#### Secret-Related Errors
+- **Secret Not Found**: When a referenced Kubernetes secret doesn't exist
+- **Key Not Found**: When a specified key doesn't exist within a secret
+- **Available Keys Reporting**: Error logs include available keys to aid troubleshooting
+
+#### Vault-Related Errors
+- **Authentication Failures**: When Vault authentication fails or tokens expire
+- **Permission Denied**: When the operator lacks write permissions to the specified Vault path
+- **Invalid Path**: When the Vault path doesn't exist or is malformed
+- **Connection Issues**: Network connectivity problems with Vault
+
+#### Configuration Errors
+- **JSON Parse Errors**: When the `vault-sync.io/secrets` annotation contains invalid JSON
+- **Invalid Annotation Format**: When required annotations are malformed
+
+All errors are logged with structured logging including relevant context (namespace, deployment, secret names, etc.) and are tracked via Prometheus metrics for alerting and monitoring.
+
 ## Usage
 
 ### Basic Example
@@ -326,52 +378,109 @@ The operator supports the following command-line flags:
 
 ## Troubleshooting
 
-### Common Issues
+### Common Error Scenarios
 
-1. **Authentication Failures**:
-   - Verify Vault Kubernetes auth backend is properly configured
-   - Check service account permissions
-   - Ensure the operator's service account is bound to the correct Vault role
+The operator provides detailed error messages and metrics to help diagnose issues. Here are common problems and their solutions:
 
-2. **Secret Not Found Errors**:
-   - Verify the secret exists in the same namespace as the deployment
-   - Check that all specified keys exist in the secret
+#### 1. Secret Not Found Errors
 
-3. **Vault Write Failures**:
-   - Check Vault policies allow writing to the specified path
-   - Verify Vault is accessible from the cluster
+**Error**: `failed to get secret mysecret: secrets "mysecret" not found`
 
-### Logs
+**Cause**: The Kubernetes secret referenced in the deployment doesn't exist.
 
-Check the operator logs for detailed error messages:
+**Solution**: 
+- Check if the secret exists: `kubectl get secret mysecret -n <namespace>`
+- Create the missing secret or fix the reference in your deployment annotations
 
+**Metrics**: Tracked in `vault_sync_operator_secret_not_found_errors_total`
+
+#### 2. Missing Key Errors
+
+**Error**: `key mykey not found in secret mysecret`
+
+**Cause**: The specified key doesn't exist in the secret.
+
+**Solution**: 
+- Check available keys: `kubectl get secret mysecret -o yaml`
+- The error log will include available keys to help identify the correct key name
+- Update the annotation to use the correct key name
+
+**Metrics**: Tracked in `vault_sync_operator_secret_key_missing_errors_total`
+
+#### 3. Vault Authentication Errors
+
+**Error**: `failed to authenticate with vault: permission denied`
+
+**Cause**: The operator can't authenticate with Vault.
+
+**Solution**:
+- Verify Vault's Kubernetes auth backend is configured correctly
+- Check that the service account has the correct role assigned
+- Ensure the JWT token is valid and accessible
+
+**Metrics**: Tracked in `vault_sync_operator_auth_attempts_total{result="failed"}`
+
+#### 4. Vault Write Permission Errors
+
+**Error**: `failed to write secret to vault: permission denied`
+
+**Cause**: The authenticated role lacks write permissions to the specified path.
+
+**Solution**:
+- Update the Vault policy to allow write access to the path
+- Verify the role-policy binding in Vault
+
+**Metrics**: Tracked in `vault_sync_operator_vault_write_errors_total{error_type="permission_denied"}`
+
+#### 5. Configuration Parse Errors
+
+**Error**: `failed to parse secrets annotation: invalid character`
+
+**Cause**: The JSON in the `vault-sync.io/secrets` annotation is malformed.
+
+**Solution**:
+- Validate the JSON syntax in your annotation
+- Use tools like `jq` to validate: `echo '<annotation-value>' | jq .`
+
+**Metrics**: Tracked in `vault_sync_operator_config_parse_errors_total{error_type="json_parse_error"}`
+
+### Debugging with kubectl
+
+1. **Check operator logs**:
 ```bash
 kubectl logs -n vault-sync-operator-system deployment/vault-sync-operator-controller-manager
 ```
 
-### Health Checks
+2. **Monitor metrics** (if Prometheus is available):
+```bash
+# Check sync attempts
+kubectl port-forward -n vault-sync-operator-system svc/vault-sync-operator-controller-manager-metrics-service 8080:8443
+curl http://localhost:8080/metrics | grep vault_sync_operator
+```
 
-The operator exposes health check endpoints:
+3. **Verify deployment annotations**:
+```bash
+kubectl get deployment <deployment-name> -o yaml | grep -A 10 annotations
+```
 
-- Liveness: `http://localhost:8081/healthz`
-- Readiness: `http://localhost:8081/readyz`
+4. **Test with troubleshooting example**:
+```bash
+kubectl apply -f examples/troubleshooting-example.yaml
+# Check logs for expected error messages
+kubectl logs -n vault-sync-operator-system deployment/vault-sync-operator-controller-manager | grep troubleshooting-example
+```
 
-## Contributing
+### Health Check Endpoints
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
+You can manually check the operator's health:
 
-## License
+```bash
+# Port forward to access health endpoints
+kubectl port-forward -n vault-sync-operator-system deployment/vault-sync-operator-controller-manager 8081:8081
 
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+# Check health (basic Vault connectivity)
+curl http://localhost:8081/healthz
 
-## Support
-
-For questions and support:
-
-- Create an issue in this repository
-- Check the troubleshooting section above
-- Review the logs for error messages
+# Check readiness (full authentication verification)
+curl http://localhost:8081/readyz
+```

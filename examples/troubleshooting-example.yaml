@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: troubleshooting-example
+  namespace: default
+  annotations:
+    # Enable sync to Vault at the specified path
+    vault-sync.io/path: "secret/data/troubleshooting-example"
+    
+    # Custom configuration with intentional issues for demonstration
+    vault-sync.io/secrets: |
+      [
+        {
+          "name": "existing-secret",
+          "keys": ["username", "password", "nonexistent-key"],
+          "prefix": "db_"
+        },
+        {
+          "name": "missing-secret",
+          "keys": ["token"],
+          "prefix": "api_"
+        }
+      ]
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: troubleshooting-example
+  template:
+    metadata:
+      labels:
+        app: troubleshooting-example
+    spec:
+      containers:
+      - name: app
+        image: nginx:latest
+        env:
+        # Reference existing secret
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: existing-secret
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: existing-secret
+              key: password
+        # Reference missing secret (will cause error)
+        - name: API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: missing-secret
+              key: token
+
+---
+# This secret exists and has some of the required keys
+apiVersion: v1
+kind: Secret
+metadata:
+  name: existing-secret
+  namespace: default
+type: Opaque
+data:
+  username: YWRtaW4=  # admin
+  password: cGFzc3dvcmQ=  # password
+  # Note: missing "nonexistent-key" that's referenced in annotation
+
+---
+# The "missing-secret" is intentionally not created to demonstrate error handling
+# This will cause a "secret not found" error that will be logged and tracked in metrics

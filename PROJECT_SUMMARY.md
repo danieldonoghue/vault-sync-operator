@@ -144,3 +144,38 @@ The operator supports various configuration flags:
 - **Kubernetes APIs**: For deployment and secret operations
 
 The project is ready for development, testing, and deployment in Kubernetes environments with HashiCorp Vault integration.
+
+## Monitoring and Observability
+
+### Health and Readiness Checks
+- **Health Check** (`/healthz`): Validates Vault server connectivity
+- **Readiness Check** (`/readyz`): Ensures Vault authentication is working
+- Integrated with Kubernetes probes for automatic health monitoring
+
+### Prometheus Metrics
+The operator exposes comprehensive metrics on port `:8080`:
+
+#### Sync Operations
+- `vault_sync_operator_sync_attempts_total`: Sync attempt counters with success/failure labels
+- `vault_sync_operator_sync_duration_seconds`: Operation duration histograms
+- `vault_sync_operator_secrets_discovered`: Number of auto-discovered secrets
+
+#### Error Tracking
+- `vault_sync_operator_secret_not_found_errors_total`: Missing Kubernetes secrets
+- `vault_sync_operator_secret_key_missing_errors_total`: Missing keys within secrets
+- `vault_sync_operator_config_parse_errors_total`: Configuration parsing failures
+- `vault_sync_operator_vault_write_errors_total`: Vault write errors by type
+
+#### Authentication
+- `vault_sync_operator_auth_attempts_total`: Vault authentication success/failure rates
+
+### Error Handling
+Comprehensive error detection and reporting for:
+- Missing Kubernetes secrets or keys (with available keys listed in logs)
+- Vault authentication failures
+- Vault permission denials
+- Invalid configuration parsing
+- Network connectivity issues
+- Path validation errors
+
+All errors are logged with structured context and tracked via Prometheus metrics for monitoring and alerting
