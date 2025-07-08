@@ -139,9 +139,11 @@ jobs:
       uses: docker/build-push-action@v6
       with:
         context: .
-        platforms: linux/amd64,linux/arm64
+        platforms: linux/amd64
         push: false
         tags: vault-sync-operator:test
+        # Temporarily building only AMD64 for faster CI
+        # Full multi-platform: linux/amd64,linux/arm64
         # Cache temporarily disabled due to GitHub infrastructure issues
         # cache-from: type=gha
         # cache-to: type=gha,mode=max
