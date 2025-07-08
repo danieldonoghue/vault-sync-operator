@@ -16,6 +16,9 @@ Intelligent detection and handling of Kubernetes secret changes to optimize perf
 ### [Performance Optimizations](performance-optimizations.md)
 Rate limiting, batch operations, and memory optimization features for high-scale deployments.
 
+### [CI/CD Pipeline](ci-cd-pipeline.md)
+Complete guide to the GitHub Actions CI/CD pipeline for automated testing, building, and releasing.
+
 ## Quick Links
 
 - [Main README](../README.md) - Getting started and basic usage

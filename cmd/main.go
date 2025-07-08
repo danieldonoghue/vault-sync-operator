@@ -24,6 +24,11 @@ import (
 )
 
 var (
+	// Build-time variables (set via ldflags)
+	version = "dev"
+	commit  = "unknown"
+	date    = "unknown"
+
 	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
 )
@@ -41,6 +46,7 @@ func main() {
 	var vaultRole string
 	var vaultAuthPath string
 	var clusterName string
+	var showVersion bool
 
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
@@ -51,6 +57,7 @@ func main() {
 	flag.StringVar(&vaultRole, "vault-role", "vault-sync-operator", "Vault Kubernetes auth role")
 	flag.StringVar(&vaultAuthPath, "vault-auth-path", "kubernetes", "Vault Kubernetes auth path")
 	flag.StringVar(&clusterName, "cluster-name", "", "Optional cluster name for multi-cluster Vault path organization")
+	flag.BoolVar(&showVersion, "version", false, "Show version information and exit")
 
 	opts := zap.Options{
 		Development: true,
@@ -58,7 +65,19 @@ func main() {
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
+	// Handle version flag
+	if showVersion {
+		fmt.Printf("vault-sync-operator version %s (commit: %s, built: %s)\n", version, commit, date)
+		os.Exit(0)
+	}
+
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+
+	// Log version information at startup
+	setupLog.Info("starting vault-sync-operator",
+		"version", version,
+		"commit", commit,
+		"build_date", date)
 
 	// Log Go runtime configuration for container awareness
 	goruntime.LogRuntimeConfiguration(setupLog)

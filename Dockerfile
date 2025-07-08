@@ -2,6 +2,9 @@
 FROM golang:1.24-alpine AS builder
 ARG TARGETOS
 ARG TARGETARCH
+ARG VERSION=dev
+ARG COMMIT=unknown
+ARG DATE=unknown
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
@@ -20,9 +23,10 @@ COPY internal/ internal/
 # - Static binary with no CGO
 # - Stripped debug symbols to reduce image size
 # - Container-aware build flags
+# - Version information embedded
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build \
     -a \
-    -ldflags='-w -s -extldflags "-static"' \
+    -ldflags="-w -s -extldflags '-static' -X main.version=${VERSION} -X main.commit=${COMMIT} -X main.date=${DATE}" \
     -tags netgo,osusergo \
     -o manager cmd/main.go
 
