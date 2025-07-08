@@ -35,7 +35,7 @@ const VaultSyncFinalizer = "vault-sync.io/finalizer"
 // DefaultRotationCheckFrequency is the default rotation check frequency for future periodic checks.
 const DefaultRotationCheckFrequency = "5m"
 
-// DeploymentReconciler reconciles a Deployment object
+// DeploymentReconciler reconciles a Deployment object.
 type DeploymentReconciler struct {
 	client.Client
 	Scheme      *runtime.Scheme
@@ -92,7 +92,7 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	return r.syncSecretsToVault(ctx, deployment)
 }
 
-// handleDeletion handles the deletion of secrets from Vault when a deployment is deleted
+// handleDeletion handles the deletion of secrets from Vault when a deployment is deleted.
 func (r *DeploymentReconciler) handleDeletion(ctx context.Context, deployment *appsv1.Deployment) (ctrl.Result, error) {
 	log := r.Log.WithValues("deployment", deployment.Name, "namespace", deployment.Namespace)
 
@@ -137,7 +137,7 @@ func (r *DeploymentReconciler) handleDeletion(ctx context.Context, deployment *a
 	return ctrl.Result{}, nil
 }
 
-// syncSecretsToVault syncs the specified secrets to Vault
+// syncSecretsToVault syncs the specified secrets to Vault.
 func (r *DeploymentReconciler) syncSecretsToVault(ctx context.Context, deployment *appsv1.Deployment) (ctrl.Result, error) {
 	log := r.Log.WithValues("deployment", deployment.Name, "namespace", deployment.Namespace)
 
@@ -239,7 +239,7 @@ func (r *DeploymentReconciler) syncSecretsToVault(ctx context.Context, deploymen
 	return ctrl.Result{}, nil
 }
 
-// syncCustomSecretsWithVersions handles custom secret configuration and returns version information
+// syncCustomSecretsWithVersions handles custom secret configuration and returns version information.
 func (r *DeploymentReconciler) syncCustomSecretsWithVersions(ctx context.Context, deployment *appsv1.Deployment, secretsConfig string) (map[string]interface{}, map[string]string, error) {
 	log := r.Log.WithValues("deployment", deployment.Name, "namespace", deployment.Namespace)
 
@@ -306,7 +306,7 @@ func (r *DeploymentReconciler) syncCustomSecretsWithVersions(ctx context.Context
 	return vaultData, secretVersions, nil
 }
 
-// syncAutoDiscoveredSecretsWithVersions auto-discovers and syncs all secrets referenced in the deployment with version tracking
+// syncAutoDiscoveredSecretsWithVersions auto-discovers and syncs all secrets referenced in the deployment with version tracking.
 func (r *DeploymentReconciler) syncAutoDiscoveredSecretsWithVersions(ctx context.Context, deployment *appsv1.Deployment) (map[string]interface{}, map[string]string, error) {
 	log := r.Log.WithValues("deployment", deployment.Name, "namespace", deployment.Namespace)
 
@@ -359,7 +359,7 @@ func (r *DeploymentReconciler) syncAutoDiscoveredSecretsWithVersions(ctx context
 	return vaultData, secretVersions, nil
 }
 
-// extractSecretNamesFromPodTemplate extracts all secret names referenced in the pod template
+// extractSecretNamesFromPodTemplate extracts all secret names referenced in the pod template.
 func (r *DeploymentReconciler) extractSecretNamesFromPodTemplate(podTemplate corev1.PodTemplateSpec) map[string]bool {
 	secretNames := make(map[string]bool)
 
@@ -404,7 +404,7 @@ func (r *DeploymentReconciler) extractSecretNamesFromPodTemplate(podTemplate cor
 	return secretNames
 }
 
-// getSecretKeys returns a slice of keys available in a secret's data
+// getSecretKeys returns a slice of keys available in a secret's data.
 func getSecretKeys(data map[string][]byte) []string {
 	keys := make([]string, 0, len(data))
 	for key := range data {
@@ -413,7 +413,7 @@ func getSecretKeys(data map[string][]byte) []string {
 	return keys
 }
 
-// SecretConfig defines which keys from a secret to sync to Vault
+// SecretConfig defines which keys from a secret to sync to Vault.
 type SecretConfig struct {
 	Name   string   `json:"name"`
 	Keys   []string `json:"keys"`
@@ -427,7 +427,7 @@ func (r *DeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-// getLastKnownSecretVersions retrieves the last known secret versions from deployment annotations
+// getLastKnownSecretVersions retrieves the last known secret versions from deployment annotations.
 func (r *DeploymentReconciler) getLastKnownSecretVersions(deployment *appsv1.Deployment) map[string]string {
 	versionsAnnotation, exists := deployment.Annotations[VaultSecretVersionsAnnotation]
 	if !exists || versionsAnnotation == "" {
@@ -446,7 +446,7 @@ func (r *DeploymentReconciler) getLastKnownSecretVersions(deployment *appsv1.Dep
 	return versions
 }
 
-// detectSecretChanges compares last known versions with current versions to detect changes
+// detectSecretChanges compares last known versions with current versions to detect changes.
 func (r *DeploymentReconciler) detectSecretChanges(lastVersions, currentVersions map[string]string) bool {
 	// If no previous versions exist, consider it a change (initial sync)
 	if len(lastVersions) == 0 {
@@ -470,7 +470,7 @@ func (r *DeploymentReconciler) detectSecretChanges(lastVersions, currentVersions
 	return false
 }
 
-// getChangedSecrets returns a list of secrets that have changed versions
+// getChangedSecrets returns a list of secrets that have changed versions.
 func (r *DeploymentReconciler) getChangedSecrets(lastVersions, currentVersions map[string]string) []string {
 	var changed []string
 
@@ -491,7 +491,7 @@ func (r *DeploymentReconciler) getChangedSecrets(lastVersions, currentVersions m
 	return changed
 }
 
-// updateSecretVersionsAnnotation updates the deployment with current secret versions
+// updateSecretVersionsAnnotation updates the deployment with current secret versions.
 func (r *DeploymentReconciler) updateSecretVersionsAnnotation(ctx context.Context, deployment *appsv1.Deployment, versions map[string]string) error {
 	versionsJSON, err := json.Marshal(versions)
 	if err != nil {
@@ -513,7 +513,7 @@ func (r *DeploymentReconciler) updateSecretVersionsAnnotation(ctx context.Contex
 	return nil
 }
 
-// isRotationCheckDisabled checks if secret rotation detection is disabled for this deployment
+// isRotationCheckDisabled checks if secret rotation detection is disabled for this deployment.
 func (r *DeploymentReconciler) isRotationCheckDisabled(deployment *appsv1.Deployment) bool {
 	rotationCheck, exists := deployment.Annotations[VaultRotationCheckAnnotation]
 	return exists && rotationCheck == "disabled"

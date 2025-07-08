@@ -272,7 +272,7 @@ func (c *Client) BatchWriteSecrets(ctx context.Context, operations []BatchOperat
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-time.After(100 * time.Millisecond):
-			// Continue to next batch
+			// Continue to next batch.
 		}
 	}
 

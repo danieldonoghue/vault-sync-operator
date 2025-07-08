@@ -15,8 +15,8 @@ import (
 // UnsetValue represents the string returned when an environment variable is not set.
 const UnsetValue = "unset"
 
-// LogRuntimeConfiguration logs the current Go runtime configuration
-// This is useful for verifying that GOMAXPROCS and GOMEMLIMIT are set correctly in containers
+// LogRuntimeConfiguration logs the current Go runtime configuration.
+// This is useful for verifying that GOMAXPROCS and GOMEMLIMIT are set correctly in containers.
 func LogRuntimeConfiguration(log logr.Logger) {
 	maxProcs := runtime.GOMAXPROCS(0)
 	memLimit := getGOMEMLIMIT()
@@ -50,7 +50,7 @@ func LogRuntimeConfiguration(log logr.Logger) {
 	}
 }
 
-// getGOMEMLIMIT returns the current GOMEMLIMIT setting
+// getGOMEMLIMIT returns the current GOMEMLIMIT setting.
 func getGOMEMLIMIT() string {
 	if limit := os.Getenv("GOMEMLIMIT"); limit != "" {
 		return limit
@@ -58,7 +58,7 @@ func getGOMEMLIMIT() string {
 	return UnsetValue
 }
 
-// getContainerMemoryLimit returns the memory limit from environment
+// getContainerMemoryLimit returns the memory limit from environment.
 func getContainerMemoryLimit() string {
 	if limit := os.Getenv("GOMEMLIMIT"); limit != "" {
 		return limit
@@ -66,7 +66,7 @@ func getContainerMemoryLimit() string {
 	return UnsetValue
 }
 
-// getContainerCPULimit returns the CPU limit from environment
+// getContainerCPULimit returns the CPU limit from environment.
 func getContainerCPULimit() string {
 	if limit := os.Getenv("GOMAXPROCS"); limit != "" {
 		return limit
@@ -74,7 +74,7 @@ func getContainerCPULimit() string {
 	return fmt.Sprintf("auto-detected=%d", runtime.GOMAXPROCS(0))
 }
 
-// ValidateRuntimeConfiguration validates that the runtime is properly configured for containers
+// ValidateRuntimeConfiguration validates that the runtime is properly configured for containers.
 func ValidateRuntimeConfiguration(log logr.Logger) {
 	warnings := []string{}
 
@@ -104,7 +104,7 @@ func ValidateRuntimeConfiguration(log logr.Logger) {
 	}
 }
 
-// ParseMemoryLimit parses a memory limit string (e.g., "128Mi") to bytes
+// ParseMemoryLimit parses a memory limit string (e.g., "128Mi") to bytes.
 func ParseMemoryLimit(limit string) (int64, error) {
 	if limit == "" {
 		return 0, fmt.Errorf("empty memory limit")

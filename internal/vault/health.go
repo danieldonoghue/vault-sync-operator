@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// HealthCheck performs a health check against the Vault connection
+// HealthCheck performs a health check against the Vault connection.
 func (c *Client) HealthCheck(ctx context.Context) error {
 	// Create a timeout context for the health check
 	healthCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -32,7 +32,7 @@ func (c *Client) HealthCheck(ctx context.Context) error {
 	return nil
 }
 
-// ReadinessCheck performs a more thorough readiness check including authentication
+// ReadinessCheck performs a more thorough readiness check including authentication.
 func (c *Client) ReadinessCheck(ctx context.Context) error {
 	// First do the basic health check
 	if err := c.HealthCheck(ctx); err != nil {

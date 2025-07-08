@@ -20,12 +20,12 @@ import (
 	_ "github.com/danieldonoghue/vault-sync-operator/internal/metrics" // Initialize metrics
 	"github.com/danieldonoghue/vault-sync-operator/internal/vault"
 
-	// Import automaxprocs to automatically set GOMAXPROCS based on container limits
+	// Import automaxprocs to automatically set GOMAXPROCS based on container limits.
 	_ "go.uber.org/automaxprocs"
 )
 
 var (
-	// Build-time variables (set via ldflags)
+	// Build-time variables (set via ldflags).
 	version = "dev"
 	commit  = "unknown"
 	date    = "unknown"
