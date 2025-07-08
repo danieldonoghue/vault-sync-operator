@@ -8,35 +8,34 @@ run:
 
 linters:
   enable:
-    - bodyclose
-    - contextcheck
     - errcheck
-    - errname
-    - errorlint
-    - exhaustive
-    - exportloopref
-    - gocognit
-    - goconst
-    - gocritic
-    - gocyclo
-    - godot
-    - goimports
-    - gomnd
-    - goprintffuncname
     - gosec
     - gosimple
     - govet
     - ineffassign
-    - misspell
-    - nakedret
-    - nolintlint
-    - prealloc
-    - predeclared
-    - revive
     - staticcheck
+    - unused
+    - misspell
+    - revive
     - stylecheck
     - unconvert
     - unparam
-    - unused
+    - gocritic
+    - gocognit
+    - goconst
+    - gocyclo
+    - nakedret
+    - prealloc
+    - predeclared
+    - bodyclose
+    - contextcheck
+    - errname
+    - errorlint
+    - exhaustive
+    - exportloopref
+    - godot
+    - gomnd
+    - goprintffuncname
+    - nolintlint
     - whitespace
   
