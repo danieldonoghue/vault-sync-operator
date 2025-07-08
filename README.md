@@ -189,7 +189,7 @@ The operator uses the following annotations to control secret synchronization:
 |------------|----------|-------------|---------|
 | `vault-sync.io/path` | ✅ | Vault storage path (enables sync) | `"secret/data/my-app"` |
 | `vault-sync.io/secrets` | ❌ | Custom secret configuration (JSON) | See examples below |
-| `vault-sync.io/preserve` | ❌ | Prevent deletion from Vault on deployment deletion | `"true"` |
+| `vault-sync.io/preserve-on-delete` | ❌ | Prevent deletion from Vault on deployment deletion | `"true"` |
 
 ### Annotation Examples
 
