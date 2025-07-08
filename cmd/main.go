@@ -1,3 +1,4 @@
+// Package main is the entry point for the vault-sync-operator.
 package main
 
 import (

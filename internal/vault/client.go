@@ -62,7 +62,7 @@ func NewClient(vaultAddr, role, authPath string) (*Client, error) {
 // authenticate performs Kubernetes authentication with Vault
 func (c *Client) authenticate() error {
 	// Read the service account token
-	tokenPath := "/var/run/secrets/kubernetes.io/serviceaccount/token"
+	tokenPath := "/var/run/secrets/kubernetes.io/serviceaccount/token" //nolint:gosec // This is a standard Kubernetes file path, not a credential
 	jwt, err := os.ReadFile(tokenPath)
 	if err != nil {
 		metrics.VaultAuthAttempts.WithLabelValues("failed").Inc()

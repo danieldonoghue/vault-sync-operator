@@ -3,6 +3,7 @@ package test
 import (
 	"testing"
 
+	//nolint:revive // Dot imports are conventional for Ginkgo/Gomega test framework
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 

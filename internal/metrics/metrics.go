@@ -35,7 +35,7 @@ var (
 		[]string{"result"},
 	)
 
-	// SecretsDiscovered tracks the number of auto-discovered secrets
+	// SecretsDiscovered tracks the number of auto-discovered secrets.
 	SecretsDiscovered = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "vault_sync_operator_secrets_discovered",
@@ -44,7 +44,7 @@ var (
 		[]string{"namespace", "deployment"},
 	)
 
-	// VaultWriteErrors tracks Vault write errors by type
+	// VaultWriteErrors tracks Vault write errors by type.
 	VaultWriteErrors = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "vault_sync_operator_vault_write_errors_total",
@@ -53,7 +53,7 @@ var (
 		[]string{"error_type", "path"},
 	)
 
-	// SecretNotFoundErrors tracks secret not found errors
+	// SecretNotFoundErrors tracks secret not found errors.
 	SecretNotFoundErrors = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "vault_sync_operator_secret_not_found_errors_total",

@@ -1,3 +1,4 @@
+// Package controller contains the Kubernetes controller logic for the vault-sync-operator.
 package controller
 
 import (
@@ -22,9 +23,9 @@ import (
 // VaultPathAnnotation specifies the Vault path for secret retrieval.
 const (
 	VaultPathAnnotation             = "vault-sync.io/path"
-	VaultSecretsAnnotation          = "vault-sync.io/secrets"
+	VaultSecretsAnnotation          = "vault-sync.io/secrets" //nolint:gosec // This is an annotation name, not a credential
 	VaultPreserveOnDeleteAnnotation = "vault-sync.io/preserve-on-delete"
-	VaultSecretVersionsAnnotation   = "vault-sync.io/secret-versions" // Track secret versions for rotation detection
+	VaultSecretVersionsAnnotation   = "vault-sync.io/secret-versions" //nolint:gosec // This is an annotation name, not a credential
 	VaultRotationCheckAnnotation    = "vault-sync.io/rotation-check"  // Control rotation detection (enabled|disabled|<frequency>)
 )
 

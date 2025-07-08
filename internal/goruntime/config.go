@@ -12,6 +12,8 @@ import (
 	"github.com/go-logr/logr"
 )
 
+const UnsetValue = "unset"
+
 // LogRuntimeConfiguration logs the current Go runtime configuration
 // This is useful for verifying that GOMAXPROCS and GOMEMLIMIT are set correctly in containers
 func LogRuntimeConfiguration(log logr.Logger) {
@@ -29,7 +31,7 @@ func LogRuntimeConfiguration(log logr.Logger) {
 	// Update Prometheus metrics
 	metrics.RuntimeInfo.WithLabelValues("gomaxprocs", fmt.Sprintf("%d", maxProcs)).Set(float64(maxProcs))
 	metrics.RuntimeInfo.WithLabelValues("numcpu", fmt.Sprintf("%d", runtime.NumCPU())).Set(float64(runtime.NumCPU()))
-	if memLimit != "unset" {
+	if memLimit != UnsetValue {
 		if memBytes, err := ParseMemoryLimit(memLimit); err == nil {
 			metrics.RuntimeInfo.WithLabelValues("gomemlimit_bytes", memLimit).Set(float64(memBytes))
 		}
@@ -52,7 +54,7 @@ func getGOMEMLIMIT() string {
 	if limit := os.Getenv("GOMEMLIMIT"); limit != "" {
 		return limit
 	}
-	return "unset"
+	return UnsetValue
 }
 
 // getContainerMemoryLimit returns the memory limit from environment
@@ -60,7 +62,7 @@ func getContainerMemoryLimit() string {
 	if limit := os.Getenv("GOMEMLIMIT"); limit != "" {
 		return limit
 	}
-	return "unset"
+	return UnsetValue
 }
 
 // getContainerCPULimit returns the CPU limit from environment
