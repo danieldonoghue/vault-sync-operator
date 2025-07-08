@@ -15,7 +15,7 @@ import (
 	"golang.org/x/time/rate"
 )
 
-// Client represents a Vault client with Kubernetes authentication and rate limiting
+// Client represents a Vault client with Kubernetes authentication and rate limiting.
 type Client struct {
 	client      *api.Client
 	role        string
@@ -24,14 +24,14 @@ type Client struct {
 	batchMutex  sync.Mutex
 }
 
-// BatchOperation represents a batch operation to be performed on Vault
+// BatchOperation represents a batch operation to be performed on Vault.
 type BatchOperation struct {
 	Path string
 	Data map[string]interface{}
 	Type string // "write" or "delete"
 }
 
-// NewClient creates a new Vault client with Kubernetes authentication and rate limiting
+// NewClient creates a new Vault client with Kubernetes authentication and rate limiting.
 func NewClient(vaultAddr, role, authPath string) (*Client, error) {
 	config := api.DefaultConfig()
 	config.Address = vaultAddr
