@@ -8,8 +8,6 @@ updates:
       day: "monday"
       time: "04:00"
     open-pull-requests-limit: 10
-    reviewers:
-      - "danieldonoghue"
     assignees:
       - "danieldonoghue"
     commit-message:
@@ -24,8 +22,6 @@ updates:
       day: "monday"
       time: "04:00"
     open-pull-requests-limit: 5
-    reviewers:
-      - "danieldonoghue"
     assignees:
       - "danieldonoghue"
     commit-message:
@@ -40,8 +36,6 @@ updates:
       day: "monday"
       time: "04:00"
     open-pull-requests-limit: 5
-    reviewers:
-      - "danieldonoghue"
     assignees:
       - "danieldonoghue"
     commit-message:
