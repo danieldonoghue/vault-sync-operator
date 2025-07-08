@@ -177,18 +177,6 @@ jobs:
         platform=${{ matrix.platform }}
         echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
 
-    - name: Extract metadata
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-        tags: |
-          type=ref,event=tag
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
-          type=semver,pattern={{major}}
-          type=raw,value=latest,enable={{is_default_branch}}
-
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v3
 
@@ -208,7 +196,14 @@ jobs:
       with:
         context: .
         platforms: ${{ matrix.platform }}
-        labels: ${{ steps.meta.outputs.labels }}
+        labels: |
+          org.opencontainers.image.title=vault-sync-operator
+          org.opencontainers.image.description=Kubernetes operator for syncing secrets from HashiCorp Vault
+          org.opencontainers.image.version=${{ needs.create-release.outputs.version }}
+          org.opencontainers.image.revision=${{ github.sha }}
+          org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+          org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          org.opencontainers.image.url=${{ github.server_url }}/${{ github.repository }}
         outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
         build-args: |
           VERSION=${{ needs.create-release.outputs.version }}
@@ -258,27 +253,63 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.CR_PAT }}
 
-    - name: Extract metadata
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-        tags: |
-          type=ref,event=tag
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
-          type=semver,pattern={{major}}
-          type=raw,value=latest,enable={{is_default_branch}}
-
     - name: Create manifest list and push
       working-directory: /tmp/digests
       run: |
-        docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+        VERSION="${{ needs.create-release.outputs.version }}"
+        
+        # Create base tags
+        TAGS=(
+          "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}"
+        )
+        
+        # Extract semantic version components (remove 'v' prefix if present)
+        CLEAN_VERSION="${VERSION#v}"
+        
+        # Check if this is a pre-release (contains hyphen)
+        IS_PRERELEASE=false
+        if [[ "$VERSION" == *"-"* ]]; then
+          IS_PRERELEASE=true
+        fi
+        
+        # Only add 'latest' tag for stable releases (not pre-releases)
+        if [[ "$IS_PRERELEASE" == false ]]; then
+          TAGS+=("${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest")
+        fi
+        
+        # Only add semantic tags for proper semver releases (not pre-releases)
+        if [[ "$IS_PRERELEASE" == false ]] && [[ "$CLEAN_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          # Split version into parts
+          IFS='.' read -ra VERSION_PARTS <<< "$CLEAN_VERSION"
+          MAJOR="${VERSION_PARTS[0]}"
+          MINOR="${VERSION_PARTS[1]}"
+          
+          # Add semantic version tags
+          TAGS+=(
+            "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${CLEAN_VERSION}"
+            "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${MAJOR}.${MINOR}"
+            "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${MAJOR}"
+          )
+        fi
+        
+        # Build tag arguments
+        TAG_ARGS=""
+        for tag in "${TAGS[@]}"; do
+          TAG_ARGS="$TAG_ARGS -t $tag"
+        done
+        
+        echo "Creating manifest list with tags: ${TAGS[*]}"
+        if [[ "$IS_PRERELEASE" == true ]]; then
+          echo "⚠️  Pre-release detected - skipping 'latest' and semantic version tags"
+        fi
+        
+        # Create and push manifest list
+        docker buildx imagetools create $TAG_ARGS \
           $(printf '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@sha256:%s ' *)
 
     - name: Inspect image
       run: |
-        docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+        docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.create-release.outputs.version }}
 
     - name: Generate SBOM
       uses: anchore/sbom-action@v0
