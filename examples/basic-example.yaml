@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-app-secrets
+  namespace: default
+type: Opaque
+data:
+  username: YWRtaW4=  # base64 encoded "admin"
+  password: MWYyZDFlMmU2N2Rm  # base64 encoded "1f2d1e2e67df"
+  api_key: bXktc2VjcmV0LWFwaS1rZXk=  # base64 encoded "my-secret-api-key"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+  namespace: default
+  annotations:
+    vault-sync.io/enabled: "true"
+    vault-sync.io/path: "secret/data/my-app"
+    vault-sync.io/secrets: |
+      [
+        {
+          "name": "my-app-secrets",
+          "keys": ["username", "password", "api_key"],
+          "prefix": "app_"
+        }
+      ]
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: my-app
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+        env:
+        - name: USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: my-app-secrets
+              key: username
+        - name: PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: my-app-secrets
+              key: password
