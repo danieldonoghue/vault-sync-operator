@@ -9,9 +9,9 @@ updates:
       time: "04:00"
     open-pull-requests-limit: 10
     reviewers:
-      - "${{ github.repository_owner }}"
+      - "danieldonoghue"
     assignees:
-      - "${{ github.repository_owner }}"
+      - "danieldonoghue"
     commit-message:
       prefix: "deps"
       include: "scope"
@@ -25,9 +25,9 @@ updates:
       time: "04:00"
     open-pull-requests-limit: 5
     reviewers:
-      - "${{ github.repository_owner }}"
+      - "danieldonoghue"
     assignees:
-      - "${{ github.repository_owner }}"
+      - "danieldonoghue"
     commit-message:
       prefix: "ci"
       include: "scope"
@@ -41,9 +41,9 @@ updates:
       time: "04:00"
     open-pull-requests-limit: 5
     reviewers:
-      - "${{ github.repository_owner }}"
+      - "danieldonoghue"
     assignees:
-      - "${{ github.repository_owner }}"
+      - "danieldonoghue"
     commit-message:
       prefix: "docker"
       include: "scope"
