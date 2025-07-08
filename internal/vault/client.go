@@ -59,7 +59,7 @@ func NewClient(vaultAddr, role, authPath string) (*Client, error) {
 	return vaultClient, nil
 }
 
-// authenticate performs Kubernetes authentication with Vault
+// authenticate performs Kubernetes authentication with Vault.
 func (c *Client) authenticate() error {
 	// Read the service account token
 	tokenPath := "/var/run/secrets/kubernetes.io/serviceaccount/token" //nolint:gosec // This is a standard Kubernetes file path, not a credential
@@ -95,7 +95,7 @@ func (c *Client) authenticate() error {
 	return nil
 }
 
-// WriteSecret writes a secret to Vault at the specified path with rate limiting
+// WriteSecret writes a secret to Vault at the specified path with rate limiting.
 func (c *Client) WriteSecret(ctx context.Context, path string, data map[string]interface{}) error {
 	// Apply rate limiting
 	if err := c.rateLimiter.Wait(ctx); err != nil {
@@ -138,7 +138,7 @@ func (c *Client) WriteSecret(ctx context.Context, path string, data map[string]i
 	return nil
 }
 
-// DeleteSecret deletes a secret from Vault at the specified path with rate limiting
+// DeleteSecret deletes a secret from Vault at the specified path with rate limiting.
 func (c *Client) DeleteSecret(ctx context.Context, path string) error {
 	// Apply rate limiting
 	if err := c.rateLimiter.Wait(ctx); err != nil {
@@ -161,25 +161,28 @@ func (c *Client) DeleteSecret(ctx context.Context, path string) error {
 	return nil
 }
 
-// Helper functions to categorize errors
+// Helper function to categorize errors - is the error related to permission issues?
 func isPermissionError(err error) bool {
 	// Check for common permission-related error messages
 	errStr := err.Error()
 	return containsAny(errStr, []string{"permission denied", "forbidden", "403"})
 }
 
+// Helper function to categorize errors - is the error related to path issues?
 func isPathError(err error) bool {
 	// Check for path-related error messages
 	errStr := err.Error()
 	return containsAny(errStr, []string{"invalid path", "not found", "404"})
 }
 
+// Helper function to categorize errors - is the error related to connection issues?
 func isConnectionError(err error) bool {
 	// Check for connection-related error messages
 	errStr := err.Error()
 	return containsAny(errStr, []string{"connection refused", "timeout", "network"})
 }
 
+// containsAny checks if the string contains any of the specified substrings.
 func containsAny(str string, substrings []string) bool {
 	for _, substr := range substrings {
 		if len(str) >= len(substr) {
@@ -193,7 +196,7 @@ func containsAny(str string, substrings []string) bool {
 	return false
 }
 
-// isDataTooLarge checks if the secret data is too large and needs optimization
+// isDataTooLarge checks if the secret data is too large and needs optimization.
 func (c *Client) isDataTooLarge(data map[string]interface{}) bool {
 	// Calculate approximate size of the data
 	totalSize := 0
@@ -208,7 +211,7 @@ func (c *Client) isDataTooLarge(data map[string]interface{}) bool {
 	return totalSize > 1024*1024
 }
 
-// writeSecretOptimized handles large secrets with memory optimization
+// writeSecretOptimized handles large secrets with memory optimization.
 func (c *Client) writeSecretOptimized(ctx context.Context, path string, data map[string]interface{}) error {
 	// For very large secrets, we could split them into chunks
 	// For now, we'll just write normally but log a warning
@@ -232,7 +235,7 @@ func (c *Client) writeSecretOptimized(ctx context.Context, path string, data map
 	return nil
 }
 
-// BatchWriteSecrets performs batch write operations for better performance
+// BatchWriteSecrets performs batch write operations for better performance.
 func (c *Client) BatchWriteSecrets(ctx context.Context, operations []BatchOperation) error {
 	c.batchMutex.Lock()
 	defer c.batchMutex.Unlock()
