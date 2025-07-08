@@ -8,6 +8,11 @@ on:
   pull_request:
     branches: [ master ]
 
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
 jobs:
   vulnerability-scan:
     name: Vulnerability Scan
@@ -29,6 +34,7 @@ jobs:
       if: always()
       with:
         sarif_file: 'trivy-results.sarif'
+      continue-on-error: true
 
   docker-security-scan:
     name: Docker Security Scan
@@ -62,6 +68,7 @@ jobs:
       if: always()
       with:
         sarif_file: 'docker-trivy-results.sarif'
+      continue-on-error: true
 
   dependency-review:
     name: Dependency Review

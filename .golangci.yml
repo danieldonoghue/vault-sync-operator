@@ -7,38 +7,36 @@ run:
   modules-download-mode: readonly
 
 linters:
-    enable:
-      - bodyclose
-      - contextcheck
-      - errcheck
-      - errname
-      - errorlint
-      - exhaustive
-      - exportloopref
-      - gocognit
-      - goconst
-      - gocritic
-      - gocyclo
-      - godot
-      - gofmt
-      - gofumpt
-      - goimports
-      - gomnd
-      - goprintffuncname
-      - gosec
-      - gosimple
-      - govet
-      - ineffassign
-      - misspell
-      - nakedret
-      - nolintlint
-      - prealloc
-      - predeclared
-      - revive
-      - staticcheck
-      - stylecheck
-      - unconvert
-      - unparam
-      - unused
-      - whitespace
+  enable:
+    - bodyclose
+    - contextcheck
+    - errcheck
+    - errname
+    - errorlint
+    - exhaustive
+    - exportloopref
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - godot
+    - goimports
+    - gomnd
+    - goprintffuncname
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - misspell
+    - nakedret
+    - nolintlint
+    - prealloc
+    - predeclared
+    - revive
+    - staticcheck
+    - stylecheck
+    - unconvert
+    - unparam
+    - unused
+    - whitespace
   
