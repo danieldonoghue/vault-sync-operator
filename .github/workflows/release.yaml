@@ -48,15 +48,28 @@ jobs:
 
     - name: Create Release
       id: create_release
-      uses: actions/create-release@v1
+      run: |
+        # Create the release using GitHub CLI
+        CHANGELOG_BODY=$(cat CHANGELOG.md)
+        PRERELEASE_FLAG=""
+        if [[ "${{ steps.get_version.outputs.version }}" == *"-"* ]]; then
+          PRERELEASE_FLAG="--prerelease"
+        fi
+        
+        RELEASE_OUTPUT=$(gh release create "${{ steps.get_version.outputs.version }}" \
+          --title "Release ${{ steps.get_version.outputs.version }}" \
+          --notes "${CHANGELOG_BODY}" \
+          ${PRERELEASE_FLAG} \
+          --generate-notes)
+        
+        # Extract upload URL and release ID for compatibility
+        RELEASE_ID=$(gh api repos/${{ github.repository }}/releases/tags/${{ steps.get_version.outputs.version }} --jq '.id')
+        UPLOAD_URL=$(gh api repos/${{ github.repository }}/releases/tags/${{ steps.get_version.outputs.version }} --jq '.upload_url')
+        
+        echo "id=${RELEASE_ID}" >> $GITHUB_OUTPUT
+        echo "upload_url=${UPLOAD_URL}" >> $GITHUB_OUTPUT
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ steps.get_version.outputs.version }}
-        release_name: Release ${{ steps.get_version.outputs.version }}
-        body_path: CHANGELOG.md
-        draft: false
-        prerelease: ${{ contains(steps.get_version.outputs.version, '-') }}
 
   build-binaries:
     name: Build Binaries
@@ -107,6 +120,7 @@ jobs:
           cmd/main.go
 
     - name: Create archive
+      id: archive
       run: |
         BINARY_NAME="vault-sync-operator-${{ matrix.goos }}-${{ matrix.goarch }}"
         if [ "${{ matrix.goos }}" = "windows" ]; then
@@ -117,32 +131,24 @@ jobs:
           ARCHIVE_NAME="vault-sync-operator-${{ needs.create-release.outputs.version }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz"
           tar -czf "${ARCHIVE_NAME}" "${BINARY_NAME}" README.md LICENSE
         fi
-        echo "ARCHIVE_NAME=${ARCHIVE_NAME}" >> $GITHUB_ENV
-        echo "BINARY_NAME=${BINARY_NAME}" >> $GITHUB_ENV
+        echo "archive_name=${ARCHIVE_NAME}" >> $GITHUB_OUTPUT
+        echo "binary_name=${BINARY_NAME}" >> $GITHUB_OUTPUT
 
     - name: Upload Release Asset
-      uses: actions/upload-release-asset@v1
+      run: |
+        gh release upload ${{ needs.create-release.outputs.version }} ${{ steps.archive.outputs.archive_name }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ./${{ env.ARCHIVE_NAME }}
-        asset_name: ${{ env.ARCHIVE_NAME }}
-        asset_content_type: application/octet-stream
 
     - name: Generate SHA256 checksums
       run: |
-        sha256sum ${{ env.ARCHIVE_NAME }} > ${{ env.ARCHIVE_NAME }}.sha256
+        sha256sum ${{ steps.archive.outputs.archive_name }} > ${{ steps.archive.outputs.archive_name }}.sha256
 
     - name: Upload Checksum
-      uses: actions/upload-release-asset@v1
+      run: |
+        gh release upload ${{ needs.create-release.outputs.version }} ${{ steps.archive.outputs.archive_name }}.sha256
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ./${{ env.ARCHIVE_NAME }}.sha256
-        asset_name: ${{ env.ARCHIVE_NAME }}.sha256
-        asset_content_type: text/plain
 
   build-and-push-docker:
     name: Build and Push Docker Images
@@ -178,7 +184,7 @@ jobs:
           type=raw,value=latest,enable={{is_default_branch}}
 
     - name: Build and push Docker image
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@v6
       with:
         context: .
         platforms: linux/amd64,linux/arm64
@@ -200,14 +206,11 @@ jobs:
         output-file: sbom.spdx.json
 
     - name: Upload SBOM to Release
-      uses: actions/upload-release-asset@v1
+      run: |
+        mv sbom.spdx.json vault-sync-operator-${{ needs.create-release.outputs.version }}-sbom.spdx.json
+        gh release upload ${{ needs.create-release.outputs.version }} vault-sync-operator-${{ needs.create-release.outputs.version }}-sbom.spdx.json
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ./sbom.spdx.json
-        asset_name: vault-sync-operator-${{ needs.create-release.outputs.version }}-sbom.spdx.json
-        asset_content_type: application/json
 
   update-manifests:
     name: Update Kubernetes Manifests
@@ -251,11 +254,7 @@ jobs:
         cd ../..
 
     - name: Upload Manifests to Release
-      uses: actions/upload-release-asset@v1
+      run: |
+        gh release upload ${{ needs.create-release.outputs.version }} vault-sync-operator-manifests-${{ needs.create-release.outputs.version }}.tar.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ./vault-sync-operator-manifests-${{ needs.create-release.outputs.version }}.tar.gz
-        asset_name: vault-sync-operator-manifests-${{ needs.create-release.outputs.version }}.tar.gz
-        asset_content_type: application/gzip
