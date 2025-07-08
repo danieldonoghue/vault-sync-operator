@@ -132,7 +132,7 @@ jobs:
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+        password: ${{ secrets.CR_PAT }}
 
     - name: Build Docker image
       uses: docker/build-push-action@v6
@@ -147,4 +147,3 @@ jobs:
         cache-to: |
           type=gha,mode=max
           type=registry,ref=ghcr.io/${{ github.repository }}:buildcache,mode=max
-      continue-on-error: false
