@@ -12,6 +12,7 @@ import (
 	"github.com/go-logr/logr"
 )
 
+// UnsetValue represents the string returned when an environment variable is not set.
 const UnsetValue = "unset"
 
 // LogRuntimeConfiguration logs the current Go runtime configuration

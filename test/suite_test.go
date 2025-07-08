@@ -5,6 +5,7 @@ import (
 
 	//nolint:revive // Dot imports are conventional for Ginkgo/Gomega test framework
 	. "github.com/onsi/ginkgo/v2"
+	//nolint:revive // Dot imports are conventional for Ginkgo/Gomega test framework
 	. "github.com/onsi/gomega"
 
 	"k8s.io/client-go/kubernetes/scheme"

@@ -62,7 +62,7 @@ var (
 		[]string{"namespace", "secret_name"},
 	)
 
-	// SecretKeyMissingError tracks missing keys in secrets
+	// SecretKeyMissingError tracks missing keys in secrets.
 	SecretKeyMissingError = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "vault_sync_operator_secret_key_missing_errors_total",
@@ -71,7 +71,7 @@ var (
 		[]string{"namespace", "secret_name", "key"},
 	)
 
-	// ConfigParseErrors tracks configuration parsing errors
+	// ConfigParseErrors tracks configuration parsing errors.
 	ConfigParseErrors = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "vault_sync_operator_config_parse_errors_total",
@@ -80,7 +80,7 @@ var (
 		[]string{"namespace", "deployment", "error_type"},
 	)
 
-	// RuntimeInfo provides information about Go runtime configuration
+	// RuntimeInfo provides information about Go runtime configuration.
 	RuntimeInfo = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "vault_sync_operator_runtime_info",
