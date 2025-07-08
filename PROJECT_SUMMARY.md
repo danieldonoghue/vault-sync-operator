@@ -179,3 +179,16 @@ Comprehensive error detection and reporting for:
 - Path validation errors
 
 All errors are logged with structured context and tracked via Prometheus metrics for monitoring and alerting
+
+### Container Runtime Optimization
+The operator is optimized for Kubernetes environments with automatic Go runtime configuration:
+
+- **Automatic GOMAXPROCS**: Uses `go.uber.org/automaxprocs` to respect container CPU limits
+- **Memory Limit Awareness**: GOMEMLIMIT configured from container memory limits
+- **Container-aware GC**: Optimized garbage collection for container environments
+- **Runtime Validation**: Startup logging and metrics for runtime configuration verification
+- **Production Build**: Optimized Docker builds with static binaries and reduced image size
+
+#### Runtime Metrics
+- `vault_sync_operator_runtime_info`: Tracks GOMAXPROCS, GOMEMLIMIT, and GC configuration
+- Startup validation logs for troubleshooting container resource detection

@@ -484,3 +484,55 @@ curl http://localhost:8081/healthz
 # Check readiness (full authentication verification)
 curl http://localhost:8081/readyz
 ```
+
+## Container Runtime Optimization
+
+The operator is optimized for Kubernetes container environments with automatic Go runtime configuration:
+
+### Automatic Resource Detection
+
+- **GOMAXPROCS**: Automatically configured based on container CPU limits using `go.uber.org/automaxprocs`
+- **GOMEMLIMIT**: Set from container memory limits to optimize garbage collection
+- **Container-aware GC**: Prevents memory usage beyond container limits
+
+### Resource Configuration
+
+The default deployment includes:
+
+```yaml
+resources:
+  limits:
+    cpu: 500m      # Automatically sets GOMAXPROCS
+    memory: 128Mi  # Automatically sets GOMEMLIMIT
+  requests:
+    cpu: 10m
+    memory: 64Mi
+```
+
+### Runtime Validation
+
+The operator logs its runtime configuration at startup:
+
+```
+Go runtime configuration GOMAXPROCS=1 NumCPU=4 GOMEMLIMIT=128Mi container_memory_limit=128Mi container_cpu_limit=auto-detected=1
+```
+
+### Tuning for Production
+
+For production workloads, adjust resources based on:
+
+- **CPU**: Increase for high-volume secret synchronization
+- **Memory**: Increase for deployments with many large secrets
+- **Replicas**: Enable leader election for high availability
+
+Example production configuration:
+
+```yaml
+resources:
+  limits:
+    cpu: 1000m     # GOMAXPROCS=1
+    memory: 256Mi  # GOMEMLIMIT=256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+```

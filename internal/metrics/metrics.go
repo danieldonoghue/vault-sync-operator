@@ -78,6 +78,15 @@ var (
 		},
 		[]string{"namespace", "deployment", "error_type"},
 	)
+
+	// RuntimeInfo provides information about Go runtime configuration
+	RuntimeInfo = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "vault_sync_operator_runtime_info",
+			Help: "Go runtime configuration information",
+		},
+		[]string{"setting", "value"},
+	)
 )
 
 func init() {
@@ -91,5 +100,6 @@ func init() {
 		SecretNotFoundErrors,
 		SecretKeyMissingError,
 		ConfigParseErrors,
+		RuntimeInfo,
 	)
 }

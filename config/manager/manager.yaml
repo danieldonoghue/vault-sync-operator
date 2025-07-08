@@ -69,6 +69,15 @@ spec:
           value: "vault-sync-operator"
         - name: VAULT_AUTH_PATH
           value: "kubernetes"
+        # Configure Go runtime for container environment
+        - name: GOMEMLIMIT
+          valueFrom:
+            resourceFieldRef:
+              resource: limits.memory
+        - name: GOMAXPROCS
+          valueFrom:
+            resourceFieldRef:
+              resource: limits.cpu
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:

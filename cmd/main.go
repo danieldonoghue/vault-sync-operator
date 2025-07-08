@@ -14,8 +14,12 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	"github.com/danieldonoghue/vault-sync-operator/internal/controller"
+	"github.com/danieldonoghue/vault-sync-operator/internal/goruntime"
 	_ "github.com/danieldonoghue/vault-sync-operator/internal/metrics" // Initialize metrics
 	"github.com/danieldonoghue/vault-sync-operator/internal/vault"
+
+	// Import automaxprocs to automatically set GOMAXPROCS based on container limits
+	_ "go.uber.org/automaxprocs"
 )
 
 var (
@@ -52,6 +56,10 @@ func main() {
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+
+	// Log Go runtime configuration for container awareness
+	goruntime.LogRuntimeConfiguration(setupLog)
+	goruntime.ValidateRuntimeConfiguration(setupLog)
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme: scheme,
