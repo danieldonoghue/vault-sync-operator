@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"net/http"
 	"os"
 
@@ -39,6 +40,7 @@ func main() {
 	var vaultAddr string
 	var vaultRole string
 	var vaultAuthPath string
+	var clusterName string
 
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
@@ -48,6 +50,7 @@ func main() {
 	flag.StringVar(&vaultAddr, "vault-addr", "http://vault:8200", "Vault server address")
 	flag.StringVar(&vaultRole, "vault-role", "vault-sync-operator", "Vault Kubernetes auth role")
 	flag.StringVar(&vaultAuthPath, "vault-auth-path", "kubernetes", "Vault Kubernetes auth path")
+	flag.StringVar(&clusterName, "cluster-name", "", "Optional cluster name for multi-cluster Vault path organization")
 
 	opts := zap.Options{
 		Development: true,
@@ -82,11 +85,19 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Log cluster configuration
+	if clusterName != "" {
+		setupLog.Info("multi-cluster mode enabled", "cluster_name", clusterName, "vault_path_prefix", fmt.Sprintf("clusters/%s/", clusterName))
+	} else {
+		setupLog.Info("single-cluster mode (no cluster prefix for vault paths)")
+	}
+
 	if err = (&controller.DeploymentReconciler{
 		Client:      mgr.GetClient(),
 		Scheme:      mgr.GetScheme(),
 		Log:         ctrl.Log.WithName("controllers").WithName("Deployment"),
 		VaultClient: vaultClient,
+		ClusterName: clusterName,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Deployment")
 		os.Exit(1)

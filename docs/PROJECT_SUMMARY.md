@@ -22,13 +22,23 @@ vault-sync-operator/
 ├── internal/
 │   ├── controller/
 │   │   └── deployment_controller.go  # Deployment reconciler logic
-│   └── vault/
-│       └── client.go           # Vault client with K8s auth
+│   ├── vault/
+│   │   ├── client.go           # Vault client with K8s auth
+│   │   └── health.go           # Vault health checks
+│   ├── goruntime/
+│   │   ├── config.go           # Go runtime optimization
+│   │   └── config_test.go      # Runtime configuration tests
+│   └── metrics/
+│       └── metrics.go          # Prometheus metrics
 ├── config/
 │   ├── default/               # Kustomize default configuration
 │   ├── manager/               # Manager deployment configuration
 │   ├── rbac/                  # RBAC permissions
 │   └── crd/                   # Custom Resource Definitions
+├── docs/                      # Documentation
+│   ├── README.md              # Documentation index
+│   ├── PROJECT_SUMMARY.md     # Complete project summary
+│   └── multi-cluster-deployment.md # Multi-cluster guide
 ├── examples/                  # Example deployment files
 ├── scripts/
 │   └── setup-vault.sh         # Vault configuration script
@@ -36,7 +46,7 @@ vault-sync-operator/
 ├── Dockerfile                 # Container image build
 ├── Makefile                   # Build and deployment targets
 ├── go.mod                     # Go module dependencies
-└── README.md                  # Comprehensive documentation
+└── README.md                  # Main documentation
 ```
 
 ## Core Components
@@ -192,3 +202,28 @@ The operator is optimized for Kubernetes environments with automatic Go runtime 
 #### Runtime Metrics
 - `vault_sync_operator_runtime_info`: Tracks GOMAXPROCS, GOMEMLIMIT, and GC configuration
 - Startup validation logs for troubleshooting container resource detection
+
+## Implementation Details
+
+### 1. Safety Features
+- **Preservation Annotation**: `vault-sync.io/preserve-on-delete: "true"` prevents Vault secret deletion when deployments are deleted
+- **Finalizer Management**: Ensures proper cleanup order and prevents orphaned resources
+- **Error Recovery**: Comprehensive error handling with retry logic and detailed logging
+
+### 2. Secret Generator Compatibility
+- **Runtime Secret Reading**: Reads secrets when syncing, not when they're created
+- **Auto-Discovery**: Finds secrets referenced in pod templates regardless of creation method
+- **Generator-Friendly**: Works with Kustomize, Helm, and other secret generation tools
+- **Helpful Error Messages**: Suggests checking if generators have run when secrets are missing
+
+### 3. Multi-Cluster Architecture
+- **Per-Cluster Deployment**: Standard Kubernetes operator pattern (recommended approach)
+- **Cluster-Aware Paths**: Optional cluster prefixing for Vault path organization
+- **Independent Operation**: Each cluster operates independently for security and simplicity
+- **Shared Vault**: Multiple clusters can use the same Vault server with different auth backends
+
+#### Multi-Cluster Benefits:
+- **Security Isolation**: Each cluster's secrets remain within cluster boundaries
+- **Failure Isolation**: One cluster's issues don't affect others  
+- **Simple Architecture**: No cross-cluster networking complexity
+- **Standard Practice**: Follows established Kubernetes operator conventions
