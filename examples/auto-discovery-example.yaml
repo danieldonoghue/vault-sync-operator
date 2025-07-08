@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: database-config
+  namespace: default
+type: Opaque
+data:
+  host: ZGIuZXhhbXBsZS5jb20=  # base64 encoded "db.example.com"
+  port: NTQzMg==  # base64 encoded "5432"
+  username: YXBwdXNlcg==  # base64 encoded "appuser"
+  password: c2VjcmV0MTIz  # base64 encoded "secret123"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: api-credentials
+  namespace: default
+type: Opaque
+data:
+  token: YWJjZGVmZ2hpamtsbW5vcA==  # base64 encoded "abcdefghijklmnop"
+  refresh_token: eHl6MTIzNDU2Nzg5MA==  # base64 encoded "xyz1234567890"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auto-discovery-app
+  namespace: default
+  annotations:
+    vault-sync.io/path: "secret/data/auto-discovery-app"
+    # No vault-sync.io/secrets annotation = auto-discover and sync all referenced secrets
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auto-discovery-app
+  template:
+    metadata:
+      labels:
+        app: auto-discovery-app
+    spec:
+      containers:
+      - name: web-app
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+        env:
+        # These secrets will be auto-discovered and synced to Vault
+        - name: DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: database-config
+              key: host
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-config
+              key: password
+        - name: API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: api-credentials
+              key: token
+        # Environment variables from the entire secret
+        envFrom:
+        - secretRef:
+            name: api-credentials
+      # Volume mount example - this secret will also be auto-discovered
+      volumes:
+      - name: config-volume
+        secret:
+          secretName: database-config

@@ -1,4 +1,4 @@
-module github.com/danield/vault-sync-operator
+module github.com/danieldonoghue/vault-sync-operator
 
 go 1.22
 

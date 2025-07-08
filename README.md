@@ -27,7 +27,7 @@ The Vault Sync Operator watches for Kubernetes Deployments with specific annotat
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/danield/vault-sync-operator.git
+git clone https://github.com/danieldonoghue/vault-sync-operator.git
 cd vault-sync-operator
 ```
 
@@ -90,7 +90,6 @@ metadata:
   name: my-app
   namespace: default
   annotations:
-    vault-sync.io/enabled: "true"
     vault-sync.io/path: "secret/data/my-app"
     vault-sync.io/secrets: |
       [
@@ -115,6 +114,17 @@ spec:
         image: nginx:latest
         ports:
         - containerPort: 80
+        env:
+        - name: USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: my-app-secrets
+              key: username
+        - name: PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: my-app-secrets
+              key: password
 ```
 
 This will sync the `username` and `password` keys from the `my-app-secrets` secret to Vault at the path `secret/data/my-app` with the keys prefixed as `app_username` and `app_password`.
@@ -123,13 +133,30 @@ This will sync the `username` and `password` keys from the `my-app-secrets` secr
 
 | Annotation | Required | Description | Example |
 |------------|----------|-------------|---------|
-| `vault-sync.io/enabled` | Yes | Enable vault sync for this deployment | `"true"` |
 | `vault-sync.io/path` | Yes | Vault path where secrets should be stored | `"secret/data/my-app"` |
-| `vault-sync.io/secrets` | Yes | JSON array of secret configurations | See below |
+| `vault-sync.io/secrets` | No | JSON array of secret configurations (see below) | See below |
+
+**Note**: The presence of `vault-sync.io/path` automatically enables vault sync for the deployment.
 
 ### Secrets Configuration Format
 
-The `vault-sync.io/secrets` annotation expects a JSON array with the following structure:
+The `vault-sync.io/secrets` annotation is **optional** and allows you to selectively sync specific secrets and keys. If not specified, **all secrets referenced by the deployment will be synced entirely** to the Vault path.
+
+#### When to use `vault-sync.io/secrets`:
+- **Selective key syncing**: Only sync specific keys from a secret
+- **Key prefixing**: Add prefixes to avoid naming conflicts
+- **Multiple secrets**: Combine keys from different secrets
+- **Fine-grained control**: Precisely control what gets synced
+
+#### Default behavior (no `vault-sync.io/secrets` annotation):
+If you don't specify the `vault-sync.io/secrets` annotation, the operator will:
+1. Find all secrets referenced in the deployment's pod template
+2. Sync each secret entirely (all keys) to Vault
+3. Store them as nested objects under the specified path
+4. Use the original secret names as object keys
+
+#### Custom configuration format:
+When you do specify `vault-sync.io/secrets`, it expects a JSON array with this structure:
 
 ```json
 [
@@ -141,12 +168,65 @@ The `vault-sync.io/secrets` annotation expects a JSON array with the following s
 ]
 ```
 
+#### Storage Format in Vault:
+Secrets are stored as **structured objects** in Vault, preserving the key-value structure. For example:
+- **Kubernetes secret**: `{"username": "admin", "password": "secret123"}`
+- **Stored in Vault**: Same structure at the specified path
+- **With prefix**: `{"app_username": "admin", "app_password": "secret123"}`
+
+## Design Philosophy
+
+### Simplicity First
+- **Implicit enablement**: Just add a `vault-sync.io/path` annotation
+- **Auto-discovery**: The operator automatically finds secrets referenced in your deployment
+- **Sensible defaults**: Without configuration, all referenced secrets are synced entirely
+
+### Flexible Configuration
+- **Optional fine-tuning**: Use `vault-sync.io/secrets` only when you need selective syncing or prefixing
+- **Key selection**: Choose specific keys from secrets when needed
+- **Namespace organization**: Use prefixes to avoid key conflicts
+
+### Vault Storage Strategy
+The operator stores secrets as **structured JSON objects** in Vault rather than individual key-value pairs because:
+- **Preserves structure**: Maintains the original secret organization
+- **Easier management**: One Vault path per deployment, not per secret key
+- **Better security**: Atomic updates and consistent access patterns
+- **Intuitive**: What you put in Kubernetes is what you get in Vault (unless customized)
+
 ### Advanced Examples
 
-#### Multiple Secrets
+#### Automatic Secret Detection (No configuration needed)
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: simple-app
+  namespace: default
+  annotations:
+    vault-sync.io/path: "secret/data/simple-app"
+    # No vault-sync.io/secrets annotation = sync all referenced secrets entirely
+spec:
+  template:
+    spec:
+      containers:
+      - name: app
+        image: nginx:latest
+        env:
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-creds  # This secret will be auto-synced entirely
+              key: password
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: api-secrets     # This secret will also be auto-synced entirely
+              key: key
+```
+
+#### Multiple Secrets with Custom Configuration
 ```yaml
 annotations:
-  vault-sync.io/enabled: "true"
   vault-sync.io/path: "secret/data/my-complex-app"
   vault-sync.io/secrets: |
     [
@@ -162,18 +242,19 @@ annotations:
     ]
 ```
 
-#### No Prefix
+#### Mixed Approach (Some secrets auto-detected, some configured)
 ```yaml
 annotations:
-  vault-sync.io/enabled: "true"
-  vault-sync.io/path: "secret/data/simple-app"
+  vault-sync.io/path: "secret/data/mixed-app"
   vault-sync.io/secrets: |
     [
       {
-        "name": "simple-secrets",
-        "keys": ["username", "password"]
+        "name": "sensitive-secrets",
+        "keys": ["admin_password"],  # Only sync specific keys
+        "prefix": "admin_"
       }
     ]
+    # Other secrets referenced in the deployment will be auto-synced entirely
 ```
 
 ## Development

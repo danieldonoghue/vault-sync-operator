@@ -13,8 +13,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
-	"github.com/danield/vault-sync-operator/internal/controller"
-	"github.com/danield/vault-sync-operator/internal/vault"
+	"github.com/danieldonoghue/vault-sync-operator/internal/controller"
+	"github.com/danieldonoghue/vault-sync-operator/internal/vault"
 )
 
 var (

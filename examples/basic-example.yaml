@@ -15,7 +15,6 @@ metadata:
   name: my-app
   namespace: default
   annotations:
-    vault-sync.io/enabled: "true"
     vault-sync.io/path: "secret/data/my-app"
     vault-sync.io/secrets: |
       [

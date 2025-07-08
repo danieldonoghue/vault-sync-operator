@@ -58,11 +58,12 @@ vault-sync-operator/
 
 ## Annotations Used
 
-| Annotation | Description | Example |
-|------------|-------------|---------|
-| `vault-sync.io/enabled` | Enable vault sync | `"true"` |
-| `vault-sync.io/path` | Vault storage path | `"secret/data/my-app"` |
-| `vault-sync.io/secrets` | Secret configuration JSON | See examples |
+| Annotation | Required | Description | Example |
+|------------|----------|-------------|---------|
+| `vault-sync.io/path` | Yes | Vault storage path (enables sync) | `"secret/data/my-app"` |
+| `vault-sync.io/secrets` | No | Custom secret configuration JSON | See examples |
+
+**Note**: The presence of `vault-sync.io/path` automatically enables vault sync. The `vault-sync.io/secrets` annotation is optional and only needed for selective key syncing or prefixing.
 
 ## Example Usage
 
@@ -72,16 +73,8 @@ kind: Deployment
 metadata:
   name: my-app
   annotations:
-    vault-sync.io/enabled: "true"
     vault-sync.io/path: "secret/data/my-app"
-    vault-sync.io/secrets: |
-      [
-        {
-          "name": "my-app-secrets",
-          "keys": ["username", "password"],
-          "prefix": "app_"
-        }
-      ]
+    # Optional: vault-sync.io/secrets for custom configuration
 spec:
   # ... deployment spec
 ```
