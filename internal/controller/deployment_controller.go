@@ -19,20 +19,20 @@ import (
 	"github.com/danieldonoghue/vault-sync-operator/internal/vault"
 )
 
+// VaultPathAnnotation specifies the Vault path for secret retrieval.
 const (
-	// Annotations used by the operator
 	VaultPathAnnotation             = "vault-sync.io/path"
 	VaultSecretsAnnotation          = "vault-sync.io/secrets"
 	VaultPreserveOnDeleteAnnotation = "vault-sync.io/preserve-on-delete"
 	VaultSecretVersionsAnnotation   = "vault-sync.io/secret-versions" // Track secret versions for rotation detection
 	VaultRotationCheckAnnotation    = "vault-sync.io/rotation-check"  // Control rotation detection (enabled|disabled|<frequency>)
-
-	// Finalizer name
-	VaultSyncFinalizer = "vault-sync.io/finalizer"
-
-	// Default rotation check frequency (for future periodic checks)
-	DefaultRotationCheckFrequency = "5m"
 )
+
+// VaultSyncFinalizer is the finalizer name used by the operator.
+const VaultSyncFinalizer = "vault-sync.io/finalizer"
+
+// DefaultRotationCheckFrequency is the default rotation check frequency for future periodic checks.
+const DefaultRotationCheckFrequency = "5m"
 
 // DeploymentReconciler reconciles a Deployment object
 type DeploymentReconciler struct {

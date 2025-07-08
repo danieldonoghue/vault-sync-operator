@@ -14,12 +14,15 @@ func (c *Client) HealthCheck(ctx context.Context) error {
 	defer cancel()
 
 	// Check if we can reach Vault's health endpoint
-	req := c.client.NewRequest("GET", "/v1/sys/health")
-	resp, err := c.client.RawRequestWithContext(healthCtx, req)
+	resp, err := c.client.Logical().ReadRawWithContext(healthCtx, "sys/health")
 	if err != nil {
 		return fmt.Errorf("vault health check failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			// Log error but don't fail the health check
+		}
+	}()
 
 	// Check if Vault is sealed or in standby (both are ok for health check)
 	if resp.StatusCode != http.StatusOK &&

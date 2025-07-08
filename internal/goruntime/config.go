@@ -1,3 +1,4 @@
+// Package goruntime provides utilities for Go runtime configuration and memory management.
 package goruntime
 
 import (

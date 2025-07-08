@@ -1,10 +1,11 @@
+// Package vault provides client functionality for interacting with HashiCorp Vault.
 package vault
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"sync"
 	"time"
@@ -62,7 +63,7 @@ func NewClient(vaultAddr, role, authPath string) (*Client, error) {
 func (c *Client) authenticate() error {
 	// Read the service account token
 	tokenPath := "/var/run/secrets/kubernetes.io/serviceaccount/token"
-	jwt, err := ioutil.ReadFile(tokenPath)
+	jwt, err := os.ReadFile(tokenPath)
 	if err != nil {
 		metrics.VaultAuthAttempts.WithLabelValues("failed").Inc()
 		return fmt.Errorf("failed to read service account token: %w", err)
@@ -118,13 +119,16 @@ func (c *Client) WriteSecret(ctx context.Context, path string, data map[string]i
 	_, err := c.client.Logical().WriteWithContext(ctx, path, data)
 	if err != nil {
 		// Categorize the error type for better metrics
-		errorType := "unknown"
-		if isPermissionError(err) {
+		var errorType string
+		switch {
+		case isPermissionError(err):
 			errorType = "permission_denied"
-		} else if isPathError(err) {
+		case isPathError(err):
 			errorType = "invalid_path"
-		} else if isConnectionError(err) {
+		case isConnectionError(err):
 			errorType = "connection_failed"
+		default:
+			errorType = "unknown"
 		}
 
 		metrics.VaultWriteErrors.WithLabelValues(errorType, path).Inc()

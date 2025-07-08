@@ -4,6 +4,8 @@ import (
 	"testing"
 )
 
+const unsetValue = "unset"
+
 func TestParseMemoryLimit(t *testing.T) {
 	tests := []struct {
 		input    string
@@ -40,7 +42,7 @@ func TestParseMemoryLimit(t *testing.T) {
 func TestGetGOMEMLIMIT(t *testing.T) {
 	// Test default case (should return "unset" when env var is not set)
 	result := getGOMEMLIMIT()
-	if result != "unset" {
+	if result != unsetValue {
 		t.Errorf("Expected 'unset' when GOMEMLIMIT is not set, got %s", result)
 	}
 }

@@ -1,3 +1,4 @@
+// Package metrics provides Prometheus metrics for the vault-sync-operator.
 package metrics
 
 import (
@@ -6,7 +7,7 @@ import (
 )
 
 var (
-	// SecretsyncAttempts tracks the number of secret sync attempts
+	// SecretsyncAttempts tracks the number of secret sync attempts.
 	SecretsyncAttempts = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "vault_sync_operator_sync_attempts_total",
@@ -15,7 +16,7 @@ var (
 		[]string{"namespace", "deployment", "result"},
 	)
 
-	// SecretsyncDuration tracks the duration of secret sync operations
+	// SecretsyncDuration tracks the duration of secret sync operations.
 	SecretsyncDuration = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "vault_sync_operator_sync_duration_seconds",
@@ -25,7 +26,7 @@ var (
 		[]string{"namespace", "deployment"},
 	)
 
-	// VaultAuthAttempts tracks Vault authentication attempts
+	// VaultAuthAttempts tracks Vault authentication attempts.
 	VaultAuthAttempts = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "vault_sync_operator_auth_attempts_total",

@@ -1175,9 +1175,9 @@ func (suite *IntegrationTestSuite) TestChaosRecovery(t *testing.T) {
 }
 func (suite *IntegrationTestSuite) TearDownSuite() {
 	if suite.testEnv != nil {
-		suite.testEnv.Stop()
+		_ = suite.testEnv.Stop()
 	}
 	if suite.vaultContainer != nil {
-		suite.vaultContainer.Terminate(context.Background())
+		_ = suite.vaultContainer.Terminate(context.Background())
 	}
 }
