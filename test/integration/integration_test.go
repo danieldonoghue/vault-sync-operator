@@ -61,7 +61,7 @@ func (suite *IntegrationTestSuite) SetupSuite() error {
 
 	// Start Vault container
 	req := testcontainers.ContainerRequest{
-		Image:        "vault:1.16",
+		Image:        "vault:1.15",
 		ExposedPorts: []string{"8200/tcp"},
 		WaitingFor:   wait.ForLog("Vault server started!"),
 		Env: map[string]string{
