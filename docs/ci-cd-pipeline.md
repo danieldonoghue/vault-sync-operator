@@ -14,8 +14,8 @@ The CI/CD pipeline consists of several workflows that handle testing, building, 
 ## CI Workflow
 
 ### Triggers
-- Push to `main` or `develop` branches
-- Pull requests to `main` branch
+- Push to `master` or `develop` branches
+- Pull requests to `master` branch
 
 ### Jobs
 
@@ -80,7 +80,7 @@ The CI/CD pipeline consists of several workflows that handle testing, building, 
 
 ### Triggers
 - Weekly schedule (Sundays)
-- Push to `main` branch
+- Push to `master` branch
 - Pull requests
 
 ### Scans
@@ -168,7 +168,7 @@ Pre-release versions are marked as "prerelease" in GitHub and don't update the `
 
 ### Branch Protection
 
-The `main` branch should be protected with:
+The `master` branch should be protected with:
 - Required status checks for all CI jobs
 - Require branches to be up to date
 - No direct pushes (require PRs)
