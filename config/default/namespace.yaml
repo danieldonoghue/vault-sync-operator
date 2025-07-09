@@ -9,4 +9,4 @@ metadata:
     app.kubernetes.io/created-by: vault-sync-operator
     app.kubernetes.io/part-of: vault-sync-operator
     app.kubernetes.io/managed-by: kustomize
-  name: system
+  name: vault-sync-operator-system
