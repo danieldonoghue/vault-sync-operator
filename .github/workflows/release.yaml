@@ -103,11 +103,24 @@ jobs:
       uses: actions/cache@v4
       with:
         path: |
-          ~/.cache/go-build
           ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        key: ${{ runner.os }}-go-mod-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}
         restore-keys: |
-          ${{ runner.os }}-go-
+          ${{ runner.os }}-go-mod-${{ env.GO_VERSION }}-
+          ${{ runner.os }}-go-mod-
+
+    - name: Cache Go build cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/go-build
+        key: ${{ runner.os }}-go-build-${{ env.GO_VERSION }}-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-go-build-${{ env.GO_VERSION }}-
+          ${{ runner.os }}-go-build-
+
+    - name: Download dependencies
+      run: go mod download
 
     - name: Build binary
       env:
