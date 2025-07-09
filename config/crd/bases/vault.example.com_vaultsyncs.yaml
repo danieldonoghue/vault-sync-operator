@@ -1,0 +1,133 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: vaultsyncs.vault.example.com
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.13.0
+spec:
+  group: vault.example.com
+  names:
+    kind: VaultSync
+    listKind: VaultSyncList
+    plural: vaultsyncs
+    singular: vaultsync
+    shortNames:
+    - vs
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        description: VaultSync is the Schema for the vaultsyncs API
+        type: object
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation of an object.'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this object represents.'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: VaultSyncSpec defines the desired state of VaultSync
+            type: object
+            required:
+            - secretName
+            - vaultPath
+            properties:
+              namespace:
+                description: Namespace is the target namespace for the secret (defaults to VaultSync namespace)
+                type: string
+              refreshInterval:
+                description: RefreshInterval defines how often to sync the secret (default "60s")
+                type: string
+                default: "60s"
+              secretName:
+                description: SecretName is the name of the Kubernetes secret to create/update
+                type: string
+              vaultPath:
+                description: VaultPath is the path to the secret in Vault (e.g., "secret/data/myapp")
+                type: string
+          status:
+            description: VaultSyncStatus defines the observed state of VaultSync
+            type: object
+            properties:
+              conditions:
+                description: Conditions represent the latest available observations of the VaultSync's state
+                type: array
+                items:
+                  description: "Condition contains details for one aspect of the current state of this API Resource."
+                  type: object
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  properties:
+                    lastTransitionTime:
+                      description: lastTransitionTime is the last time the condition transitioned from one status to another.
+                      type: string
+                      format: date-time
+                    message:
+                      description: message is a human readable message indicating details about the transition.
+                      type: string
+                      maxLength: 32768
+                    observedGeneration:
+                      description: observedGeneration represents the .metadata.generation that the condition was set based upon.
+                      type: integer
+                      format: int64
+                      minimum: 0
+                    reason:
+                      description: reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                      type: string
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      type: string
+                      enum:
+                      - "True"
+                      - "False"
+                      - "Unknown"
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      type: string
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+              lastSyncTime:
+                description: LastSyncTime is when the secret was last synced
+                type: string
+                format: date-time
+              message:
+                description: Message provides additional information about the sync status
+                type: string
+              syncStatus:
+                description: SyncStatus indicates the current sync status
+                type: string
+                enum:
+                - Success
+                - Failed
+                - Pending
+    subresources:
+      status: {}
+    additionalPrinterColumns:
+    - name: Vault Path
+      type: string
+      jsonPath: .spec.vaultPath
+    - name: Secret Name
+      type: string
+      jsonPath: .spec.secretName
+    - name: Status
+      type: string
+      jsonPath: .status.syncStatus
+    - name: Last Sync
+      type: date
+      jsonPath: .status.lastSyncTime
+    - name: Age
+      type: date
+      jsonPath: .metadata.creationTimestamp

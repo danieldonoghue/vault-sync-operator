@@ -22,8 +22,8 @@ bin/
 *.tar.gz
 
 # Kubernetes
-config/crd/bases/
-config/rbac/role.yaml
+# config/crd/bases/  # Commented out - CRD bases should be committed
+# config/rbac/role.yaml  # Commented out - this file should be committed
 
 # Editor files
 .vscode/
