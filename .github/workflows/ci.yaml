@@ -34,15 +34,46 @@ jobs:
         path: |
           ~/.cache/go-build
           ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        key: ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-${{ github.run_id }}
         restore-keys: |
+          ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-
+          ${{ runner.os }}-go-${{ env.GO_VERSION }}-
           ${{ runner.os }}-go-
 
     - name: Download dependencies
       run: go mod download
 
+    - name: Clean test environment
+      run: |
+        # Clean all test caches and artifacts more aggressively
+        go clean -testcache -cache -modcache -fuzzcache
+        rm -rf ~/.cache/go-build/*
+        rm -f coverage.out coverage.tmp
+        find . -name "*.test" -delete 2>/dev/null || true
+        find . -name "*.prof" -delete 2>/dev/null || true
+        find . -name "*.out" -delete 2>/dev/null || true
+        # Clean any temporary test directories
+        find /tmp -name "go-*" -type d -exec rm -rf {} + 2>/dev/null || true
+
     - name: Run tests
-      run: go test -v -race -coverprofile=coverage.out $(go list ./... | grep -v /test/integration)
+      run: |
+        # Use a temporary directory for test outputs to avoid conflicts
+        TMPDIR=$(mktemp -d)
+        export TMPDIR
+        export GOCACHE=$TMPDIR/go-cache
+        export GOTMPDIR=$TMPDIR/go-tmp
+        mkdir -p "$GOCACHE" "$GOTMPDIR"
+        
+        # Run tests with isolated cache and output directory
+        go test -v -race -coverprofile="$TMPDIR/coverage.out" -count=1 \
+          -parallel=1 \
+          $(go list ./... | grep -v /test/integration)
+        
+        # Copy coverage file back to workspace
+        cp "$TMPDIR/coverage.out" ./coverage.out
+        
+        # Clean up temporary directory
+        rm -rf "$TMPDIR"
 
     - name: Display coverage
       run: go tool cover -func=coverage.out
