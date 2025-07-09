@@ -31,33 +31,26 @@ wait_for_resource() {
     fi
 }
 
-# Step 1: Create namespace
-echo "📦 Step 1: Creating namespace..."
-kubectl apply -f config/default/namespace.yaml
-echo "✅ Namespace created"
+# Step 1: Apply everything using the default kustomization
+echo "📦 Step 1: Applying all resources using kustomize..."
+kubectl apply -k config/default/
+echo "✅ All resources applied"
 echo ""
 
-# Step 2: Apply CRDs
-echo "📋 Step 2: Applying Custom Resource Definitions..."
-kubectl apply -k config/crd/
+# Step 2: Wait for CRDs to be ready
+echo "📋 Step 2: Waiting for CRDs to be ready..."
 wait_for_resource "crd" "vaultsyncs.vault.example.com"
-echo "✅ CRDs applied and ready"
+echo "✅ CRDs ready"
 echo ""
 
-# Step 3: Apply RBAC
-echo "🔐 Step 3: Applying RBAC resources..."
-kubectl apply -k config/rbac/
-echo "✅ RBAC resources applied"
+# Step 3: Wait for deployment to be ready
+echo "⏳ Step 3: Waiting for deployment to be ready..."
+wait_for_resource "deployment" "vault-sync-operator-controller-manager" "$NAMESPACE"
+echo "✅ Deployment ready"
 echo ""
 
-# Step 4: Apply manager deployment
-echo "🎯 Step 4: Applying manager deployment..."
-kubectl apply -k config/manager/
-echo "✅ Manager deployment applied"
-echo ""
-
-# Step 5: Patch deployment with Vault configuration
-echo "⚙️  Step 5: Configuring Vault connection..."
+# Step 4: Patch deployment with Vault configuration
+echo "⚙️  Step 4: Configuring Vault connection..."
 kubectl patch deployment vault-sync-operator-controller-manager \
   -n "$NAMESPACE" \
   --type='merge' \
@@ -87,18 +80,19 @@ kubectl patch deployment vault-sync-operator-controller-manager \
 echo "✅ Vault configuration applied"
 echo ""
 
-# Step 6: Wait for deployment to be ready
-echo "⏳ Step 6: Waiting for deployment to be ready..."
-wait_for_resource "deployment" "vault-sync-operator-controller-manager" "$NAMESPACE"
+# Step 5: Wait for updated deployment to be ready
+echo "⏳ Step 5: Waiting for updated deployment to be ready..."
+kubectl rollout status deployment/vault-sync-operator-controller-manager -n "$NAMESPACE"
+echo "✅ Updated deployment ready"
 echo ""
 
-# Step 7: Check deployment status
-echo "📊 Step 7: Checking deployment status..."
+# Step 6: Check deployment status
+echo "📊 Step 6: Checking deployment status..."
 kubectl get all -n "$NAMESPACE"
 echo ""
 
-# Step 8: Show logs
-echo "📋 Step 8: Recent operator logs..."
+# Step 7: Show logs
+echo "📋 Step 7: Recent operator logs..."
 kubectl logs -n "$NAMESPACE" -l control-plane=controller-manager --tail=20
 echo ""
 
