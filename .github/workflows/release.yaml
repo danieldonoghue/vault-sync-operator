@@ -7,8 +7,11 @@ on:
 
 env:
   GO_VERSION: "1.24"
-  REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
   create-release:
@@ -186,8 +189,8 @@ jobs:
     - name: Log in to Container Registry
       uses: docker/login-action@v3
       with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
+        registry: ghcr.io
+        username: danieldonoghue
         password: ${{ secrets.CR_PAT }}
 
     - name: Build and push by digest
@@ -198,13 +201,13 @@ jobs:
         platforms: ${{ matrix.platform }}
         labels: |
           org.opencontainers.image.title=vault-sync-operator
-          org.opencontainers.image.description=Kubernetes operator for syncing secrets from HashiCorp Vault
+          org.opencontainers.image.description=Kubernetes operator for syncing secrets to HashiCorp Vault
           org.opencontainers.image.version=${{ needs.create-release.outputs.version }}
           org.opencontainers.image.revision=${{ github.sha }}
           org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
           org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
           org.opencontainers.image.url=${{ github.server_url }}/${{ github.repository }}
-        outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
+        outputs: type=image,name=ghcr.io/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
         build-args: |
           VERSION=${{ needs.create-release.outputs.version }}
           COMMIT=${{ github.sha }}
@@ -233,7 +236,7 @@ jobs:
       - create-release
       - build-and-push-docker
     permissions:
-      contents: read
+      contents: write
       packages: write
     steps:
     - name: Download digests
@@ -249,8 +252,8 @@ jobs:
     - name: Log in to Container Registry
       uses: docker/login-action@v3
       with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
+        registry: ghcr.io
+        username: danieldonoghue
         password: ${{ secrets.CR_PAT }}
 
     - name: Create manifest list and push
@@ -260,7 +263,7 @@ jobs:
         
         # Create base tags
         TAGS=(
-          "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}"
+          "ghcr.io/${{ env.IMAGE_NAME }}:${VERSION}"
         )
         
         # Extract semantic version components (remove 'v' prefix if present)
@@ -274,7 +277,7 @@ jobs:
         
         # Only add 'latest' tag for stable releases (not pre-releases)
         if [[ "$IS_PRERELEASE" == false ]]; then
-          TAGS+=("${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest")
+          TAGS+=("ghcr.io/${{ env.IMAGE_NAME }}:latest")
         fi
         
         # Only add semantic tags for proper semver releases (not pre-releases)
@@ -286,9 +289,9 @@ jobs:
           
           # Add semantic version tags
           TAGS+=(
-            "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${CLEAN_VERSION}"
-            "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${MAJOR}.${MINOR}"
-            "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${MAJOR}"
+            "ghcr.io/${{ env.IMAGE_NAME }}:${CLEAN_VERSION}"
+            "ghcr.io/${{ env.IMAGE_NAME }}:${MAJOR}.${MINOR}"
+            "ghcr.io/${{ env.IMAGE_NAME }}:${MAJOR}"
           )
         fi
         
@@ -305,23 +308,20 @@ jobs:
         
         # Create and push manifest list
         docker buildx imagetools create $TAG_ARGS \
-          $(printf '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@sha256:%s ' *)
+          $(printf 'ghcr.io/${{ env.IMAGE_NAME }}@sha256:%s ' *)
 
     - name: Inspect image
       run: |
-        docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.create-release.outputs.version }}
+        docker buildx imagetools inspect ghcr.io/${{ env.IMAGE_NAME }}:${{ needs.create-release.outputs.version }}
 
-    - name: Generate SBOM
+    - name: Generate and Upload SBOM
       uses: anchore/sbom-action@v0
       with:
-        image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.create-release.outputs.version }}
+        image: ghcr.io/${{ env.IMAGE_NAME }}:${{ needs.create-release.outputs.version }}
         format: spdx-json
-        output-file: sbom.spdx.json
-
-    - name: Upload SBOM to Release
-      run: |
-        mv sbom.spdx.json vault-sync-operator-${{ needs.create-release.outputs.version }}-sbom.spdx.json
-        gh release upload ${{ needs.create-release.outputs.version }} vault-sync-operator-${{ needs.create-release.outputs.version }}-sbom.spdx.json
+        artifact-name: vault-sync-operator-${{ needs.create-release.outputs.version }}-sbom.spdx.json
+        upload-artifact: false
+        upload-release-assets: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
