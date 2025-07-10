@@ -1,0 +1,247 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: high-performance-example
+  namespace: default
+  annotations:
+    # Path for storing secrets in Vault
+    vault-sync.io/path: "secret/data/high-perf-app"
+    
+    # Enable rotation detection for optimal performance
+    vault-sync.io/rotation-check: "enabled"
+    
+    # Custom secret configuration for batch processing
+    vault-sync.io/secrets: |
+      [
+        {
+          "name": "database-config",
+          "keys": ["host", "port", "username", "password"],
+          "prefix": "db_"
+        },
+        {
+          "name": "redis-config",
+          "keys": ["host", "port", "password"],
+          "prefix": "redis_"
+        },
+        {
+          "name": "api-keys",
+          "keys": ["primary", "secondary", "webhook"],
+          "prefix": "api_"
+        },
+        {
+          "name": "certificates",
+          "keys": ["tls.crt", "tls.key", "ca.crt"],
+          "prefix": "cert_"
+        }
+      ]
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: high-perf-example
+  template:
+    metadata:
+      labels:
+        app: high-perf-example
+    spec:
+      containers:
+      - name: app
+        image: nginx:latest
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        env:
+        # Database configuration
+        - name: DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: database-config
+              key: host
+        - name: DB_PORT
+          valueFrom:
+            secretKeyRef:
+              name: database-config
+              key: port
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: database-config
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-config
+              key: password
+        
+        # Redis configuration
+        - name: REDIS_HOST
+          valueFrom:
+            secretKeyRef:
+              name: redis-config
+              key: host
+        - name: REDIS_PORT
+          valueFrom:
+            secretKeyRef:
+              name: redis-config
+              key: port
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-config
+              key: password
+        
+        # API keys
+        - name: API_PRIMARY_KEY
+          valueFrom:
+            secretKeyRef:
+              name: api-keys
+              key: primary
+        - name: API_SECONDARY_KEY
+          valueFrom:
+            secretKeyRef:
+              name: api-keys
+              key: secondary
+        - name: WEBHOOK_KEY
+          valueFrom:
+            secretKeyRef:
+              name: api-keys
+              key: webhook
+        
+        # TLS certificates as volume mounts
+        volumeMounts:
+        - name: tls-certs
+          mountPath: /etc/ssl/certs
+          readOnly: true
+        
+        ports:
+        - containerPort: 80
+        - containerPort: 443
+        
+      volumes:
+      - name: tls-certs
+        secret:
+          secretName: certificates
+
+---
+# Database configuration secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: database-config
+  namespace: default
+type: Opaque
+data:
+  host: cG9zdGdyZXMuZXhhbXBsZS5jb20=  # postgres.example.com
+  port: NTQzMg==                      # 5432
+  username: YXBwdXNlcg==              # appuser
+  password: c3VwZXJzZWNyZXRwYXNzd29yZA==  # supersecretpassword
+
+---
+# Redis configuration secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: redis-config
+  namespace: default
+type: Opaque
+data:
+  host: cmVkaXMuZXhhbXBsZS5jb20=      # redis.example.com
+  port: NjM3OQ==                      # 6379
+  password: cmVkaXNwYXNzd29yZA==      # redispassword
+
+---
+# API keys secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: api-keys
+  namespace: default
+type: Opaque
+data:
+  primary: cHJpbWFyeS1hcGkta2V5LTEyMzQ1Ng==      # primary-api-key-123456
+  secondary: c2Vjb25kYXJ5LWFwaS1rZXktNzg5MDA=    # secondary-api-key-78900
+  webhook: d2ViaG9vay1rZXktYWJjZGVm            # webhook-key-abcdef
+
+---
+# TLS certificates secret (this will be a larger secret for testing memory optimization)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: certificates
+  namespace: default
+type: kubernetes.io/tls
+data:
+  tls.crt: |
+    LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURIekNDQWdlZ0F3SUJBZ0lKQUx5b0J0SzVoTG50
+    TUEwR0NTcUdTSWIzRFFFQkN3VUFNQll4RkRBU0JnTlYKQkFNTUMyVjRZVzF3YkdVdVkyOXRNQjRYRFRJ
+    eE1ESXlOakUwTURVd01Wb1hEVEkyTURJeU5qRTBNRFV3TVZvdwpGakVVTUJJR0ExVUVBd3dMWlhoaGJY
+    QnNaUzVqYjIwd2dnRWlNQTBHQ1NxR1NJYjNEUUVCQVFVQUE0SUJEd0F3CmdnRUtBb0lCQVFDa3lWTE5r
+    RTNlNktONFpxR1NzOFBVTHVuemlvTHlMUzE3eG5kYm9zRngrOXR0OW5rQXV6amoKcFhaTXJOUUVJUndF
+    TzZtZGVVa21ldmdmRlJBVkQybGNPRzNLVGhNUHVnS1QreFFKQ3lNdHJYKys1K1EvTy9RegpYNkhtOGJ2
+    QjdDTm5kTEhIVU5kbXRFZlpIQVhOUTJkQ1ZYUlNWc1EzT1dZdGNnSitHdVhIWE9kY21razhJCjNHTndt
+    VEtadE5xeUFEUzZqVGI3YjhQb0xJOXhUeDBWeFV3NnBKT2VlZXNQOXdFU2RjVllIMHEyUlgvSUJrNnQK
+    ZmtqWkdRd3JtM1VYTVdwKzJCeFZEYTZQNzhnaDJFNWVzaDFCOGFZT09TYXJhWmpMaXNJWjZhbFZlaytw
+    WnZjUgoyRkhwQWNHRGtHczgyeWRwNVJ1clV3OGpUam1nTmpJUkFnTUJBQUdqVXpCUk1CMEdBMVVkRGdR
+    V0JCUmtEY2c3CmZJVDNLWkhDQ3ZKTnVJMVg1U2xGNlRBZkJnTlZIU01FR0RBV2dCUmtEY2c3ZklUM0ta
+    SEhDdkpOdUkxWDVTbEYKNlRBUEJnTlZIUk1CQWY4RUJUQURBUUgvTUEwR0NTcUdTSWIzRFFFQkN3VUFB
+    NElCQVFCOEJzSzY3a0JiSwpYcjNNWXhzNWY2REtqcVZUVlBMSDdueHFsbklQV1Y3WHJGa1l1Mm1TY3dt
+    SW9BZDFNODVSYzJhdGVhS0pqS1JGCmI3ZE9VaXZoUmNHWVg2N0gwbGdlc0ZTQTRKVU9ubk0yUFlkNEo2
+    RnJIaFltYXhOR2E5TG5vUTQxT0JTcEIKd29sbWxzdXlNUEZBV3diOEx4N3d5L0l1WkRSNUIxbzdsb0xp
+    NUpOTnJ3OW84TGczS0V2T21ubGhCRCtXb0wyVgozUGczSnZrZXFsZzk0K0xwZzFrcllpc21HYlZHcGlM
+    b3VoVEprRGpPY2VFNFpSL0dQM0xIbld6U2NsbE5JV1JCCjdNQjVmOUQzdlVCSmVTQTZsZVprNTNkMUx6
+    UnFUc0Q1d0k5K3dZZGxtQVNPSUpJSU5RRFk5bUpTVkZ5bzAKM29GYnhYanF1bk1KCi0tLS0tRU5EIENF
+    UlRJRklDQVRFLS0tLS0=
+  tls.key: |
+    LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2Z0lCQURBTkJna3Foa2lHOXcwQkFRRUZBQVND
+    Qktnd2dnU2tBZ0VBQW9JQkFRQ2t5VkxOa0UzZTZLTjQKWnFHU3M4UDVMdW56aW9MeUxTMTd4bmRib3NG
+    eCsxdHQ5bmtBdXpqalBYWk1yTlFFSVJ3RU82bWRlVWttZXZnZgpGUkFWRDJsY09HM0tUaE1QdWdLVCtR
+    SkN5TXRyWCsrNStRL08vUXMrWDZIbThidkI3Q05uZExISFVOZG10RWZaCkhBWE5RMmRDVlhSU1ZzUTNP
+    V1l0Y2dKK0d1WEhYT2Rja2s4STNHTndtVEtadE5xeUFEUzZqVGI3YjhQb0wKSTl4VHgwVnhVdzZwSk9l
+    ZWVzUDl3RVNkY1ZZSDBxMlJYL0lCazZ0ZmtqWkdRd3JtM1VYTVdwKzJCeFZEYTZQNwo4Z2gyRTVlc2gx
+    QjhhWU9PU2FyYVpqTGlzSVo2YWxWZWsrcFp2Y1IyRkhwQWNHRGtHczgyeWRwNVJ1clV3OGpUCmptZ05q
+    SVJBZ01CQUFFQ2dnRUJBSm9SZnJ1cjdOU0ZKMHVaRUc1OWdCTDBiT3R3c1VidmZEUWxtbWJkY3F0ZEIK
+    cm5vOWNRUU44Uk5tOUdDRmJXN1pQVmtqbzRKR3hDNS9kOFpHTTFndjA2NUp5aDhBMkdNTjNRUGRKQUR6
+    aHFwZwp0QjQ5ZnIwdW1wOGxIUURyS3luT0QzcHZtdVBVeEJCdjRGS2p3L1NmczVJTW1sWDBVZTIwcDhx
+    TlhCOUt0cC9uCmFOdUNITm05RlRkN2llQTc3ZnczY1NEUHM0QXZLQ2czdVZYVk92OUNWS2xRcFhkWnFZ
+    SklqMTRMSDRPUUVSNEEKY2VhaGhNVnZveFUvNXU4WU5vWFZZZlgvck5PbE9IUXpmNTNnRXpFK3lBelRu
+    L2pyZEJFdnYwSS9ya055SzdZNApxN1BVZmE5VVIzR1l0MGVRM0Z3OUh1dzhoRXRwV1JKSitkVitPK3ND
+    Z1lFQXh5ZC9ZK2g3MEhKUG5WeUIyNGVVCkQ4ZUVRcFVFajJ5cVl4RzErY1pLOWZKbG1adWZyRERQSjVY
+    cGdScXAvZTZqZFM5cGlxLzc3bDFnNkVlSzQKeTRHb2hORE0vSVVDQkI3aU9lNVEydXlMNStaZC9VZm5I
+    VzFZMkdxSzNvVGJDL0YrSWYveWRHMDdmMUIrOWQxRAprNFFPem9qSVVpRE5UUG4vWkVBVWlKc0NnWUVB
+    eW5OWWJTdWFQaU53SkVlaVBQdEFkSnZGWUpvWDJHN0lCWWtJCmpNSCtJL3hEUHZGblJPYzNDajJlOTFK
+    Ukc2WEl0WE9HNlpPMGltUURBWGhza1VzN3J1TE5wVFNqZXpJdEpxc0MKS21nZjA5WjRBaERNYWNBUzFN
+    Y1ArdVZvUGRZZVAyWDBqWVlFNXg3ZFVKelN3dWYxSU5qVE5vbTVJNWVUK3VSWgowNUVCOElrQ2dZRUF2
+    Uko5V2VNWXNSMzNLODU2OEEvRWVCcHBXbTd2OFd4Y1hWU3RsL0haaU1jNmozM3ZJCjZGdFhsdjhVOFRa
+    cy9reTUySjl6TGNtMW5ESlhRQjZJRTNRQUZRWjR2ZG5kTzJWM0NmUG1RRk1laXdlaVIKdFpCSldndmlD
+    eFJOR0hzbnA0emRvV1JzR08zSXd1RzBKd3pqQnp4RXFiYWhnRGZzZUVNZ24ySGdvWVVDZ1lBdAo1eVN1
+    NHVQaDNPQVdpOTl2OGcxS1YweDBCdktQUDR3S1llOVprL2o3Wm5YNTNHaGVOSGhjTEZ0TzVuKyt5UHJK
+    CnNzWkRSTmQ3SGxNSGZVelhrUVNjVE93b2VYbWR5ZmN2UmhIcUdFRk5ubmxmTmIzQW1VMzI4QzZvUnhr
+    NUQKOVBvZTNHazBqVit5N1NoVGFJZWJlRFArVmNxYUJhWGM5ekVzdGMwYXd3S0JnRlBZUXlMS0pCUUgw
+    aVhqNlE3VQpOU0R5Q1MxWDR3RGR3bE9XWDA1OGhJR00wWDBRUVkyOGcvdk1YSU51UzA5T1M1N2J1VGN1
+    WjB3OXdmeHlKa3IzCkRrc3pPWTJSS1YrMnBHV0tlSTFHWmk1OXN0cDhrRlZkRlR1WXBwb3l2VEZ6bzVU
+    UCtLdklpYVZjMjZWSkwKNTU4VytENTlSSTBhTnNFZzJCbmtneHZsCi0tLS0tRU5EIFBSSVZBVEUgS0VZ
+    LS0tLS0=
+  ca.crt: |
+    LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURIekNDQWdlZ0F3SUJBZ0lKQUx5b0J0SzVoTG50
+    TUEwR0NTcUdTSWIzRFFFQkN3VUFNQll4RkRBU0JnTlYKQkFNTUMyVjRZVzF3YkdVdVkyOXRNQjRYRFRJ
+    eE1ESXlOakUwTURVd01Wb1hEVEkyTURJeU5qRTBNRFV3TVZvdwpGakVVTUJJR0ExVUVBd3dMWlhoaGJY
+    QnNaUzVqYjIwd2dnRWlNQTBHQ1NxR1NJYjNEUUVCQVFVQUE0SUJEd0F3CmdnRUtBb0lCQVFDa3lWTE5r
+    RTNlNktONFpxR1NzOFBVTHVuemlvTHlMUzE3eG5kYm9zRngrOXR0OW5rQXV6amoKcFhaTXJOUUVJUndF
+    TzZtZGVVa21ldmdmRlJBVkQybGNPRzNLVGhNUHVnS1QreFFKQ3lNdHJYKys1K1EvTy9RegpYNkhtOGJ2
+    QjdDTm5kTEhIVU5kbXRFZlpIQVhOUTJkQ1ZYUlNWc1EzT1dZdGNnSitHdVhIWE9kY21razhJCjNHTndt
+    VEtadE5xeUFEUzZqVGI3YjhQb0xJOXhUeDBWeFV3NnBKT2VlZXNQOXdFU2RjVllIMHEyUlgvSUJrNnQK
+    ZmtqWkdRd3JtM1VYTVdwKzJCeFZEYTZQNzhnaDJFNWVzaDFCOGFZT09TYXJhWmpMaXNJWjZhbFZlaytw
+    WnZjUgoyRkhwQWNHRGtHczgyeWRwNVJ1clV3OGpUam1nTmpJUkFnTUJBQUdqVXpCUk1CMEdBMVVkRGdR
+    V0JCUmtEY2c3CmZJVDNLWkhDQ3ZKTnVJMVg1U2xGNlRBZkJnTlZIU01FR0RBV2dCUmtEY2c3ZklUM0ta
+    SEhDdkpOdUkxWDVTbEYKNlRBUEJnTlZIUk1CQWY4RUJUQURBUUgvTUEwR0NTcUdTSWIzRFFFQkN3VUFB
+    NElCQVFCOEJzSzY3a0JiSwpYcjNNWXhzNWY2REtqcVZUVlBMSDdueHFsbklQV1Y3WHJGa1l1Mm1TY3dt
+    SW9BZDFNODVSYzJhdGVhS0pqS1JGCmI3ZE9VaXZoUmNHWVg2N0gwbGdlc0ZTQTRKVU9ubk0yUFlkNEo2
+    RnJIaFltYXhOR2E5TG5vUTQxT0JTcEIKd29sbWxzdXlNUEZBV3diOEx4N3d5L0l1WkRSNUIxbzdsb0xp
+    NUpOTnJ3OW84TGczS0V2T21ubGhCRCtXb0wyVgozUGczSnZrZXFsZzk0K0xwZzFrcllpc21HYlZHcGlM
+    b3VoVEprRGpPY2VFNFpSL0dQM0xIbld6U2NsbE5JV1JCCjdNQjVmOUQzdlVCSmVTQTZsZVprNTNkMUx6
+    UnFUc0Q1d0k5K3dZZGxtQVNPSUpJSU5RRFk5bUpTVkZ5bzAKM29GYnhYanF1bk1KCi0tLS0tRU5EIENF
+    UlRJRklDQVRFLS0tLS0=

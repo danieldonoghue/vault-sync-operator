@@ -1,0 +1,8 @@
+# Global code owner for all files
+* @danieldonoghue
+
+# Specific ownership patterns (optional)
+go.mod @danieldonoghue
+go.sum @danieldonoghue
+Dockerfile @danieldonoghue
+.github/ @danieldonoghue

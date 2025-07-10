@@ -1,0 +1,36 @@
+version: "2"
+
+run:
+  timeout: 5m
+  issues-exit-code: 1
+  tests: true
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    - errcheck
+    - gosec
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - misspell
+    - revive
+    - unconvert
+    - unparam
+    - gocritic
+    - gocognit
+    - goconst
+    - gocyclo
+    - nakedret
+    - prealloc
+    - bodyclose
+    - contextcheck
+    - errname
+    - errorlint
+    - exhaustive
+    - godot
+    - goprintffuncname
+    - nolintlint
+    - whitespace
+  
