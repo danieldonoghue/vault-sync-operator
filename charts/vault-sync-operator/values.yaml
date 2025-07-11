@@ -9,7 +9,8 @@ image:
   pullPolicy: IfNotPresent
   tag: ""  # Uses appVersion from Chart.yaml if empty
 
-imagePullSecrets: []
+imagePullSecrets:
+  - name: ghcr-secret
 nameOverride: ""
 fullnameOverride: ""
 

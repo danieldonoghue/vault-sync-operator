@@ -43,6 +43,8 @@ spec:
       #             operator: In
       #             values:
       #               - linux
+      imagePullSecrets:
+      - name: ghcr-secret
       securityContext:
         runAsNonRoot: true
         # TODO(user): For common cases that do not require escalating privileges
