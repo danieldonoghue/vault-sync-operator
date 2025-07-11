@@ -11,7 +11,7 @@ image:
 
 imagePullSecrets:
   - name: ghcr-secret
-    create: true
+    create: false  # Set to true and provide credentials for private registry
     registry: ghcr.io
     username: ""  # Set via --set imagePullSecrets[0].username=your-username
     password: ""  # Set via --set imagePullSecrets[0].password=your-pat
