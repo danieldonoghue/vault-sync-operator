@@ -218,9 +218,12 @@ The operator uses the following annotations to control secret synchronization:
 | `vault-sync.io/secrets` | ❌ | Custom secret configuration (JSON) | See examples below |
 | `vault-sync.io/preserve-on-delete` | ❌ | Prevent deletion from Vault on deployment deletion | `"true"` |
 
-### Annotation Examples
+### Synchronization Modes
 
-#### Basic Sync (Auto-Discovery)
+The operator supports two synchronization modes:
+
+#### Auto-Discovery Mode
+When no `vault-sync.io/secrets` annotation is provided, the operator automatically discovers all secrets referenced in the deployment pod template and writes each secret to its own sub-path.
 ```yaml
 metadata:
   annotations:
@@ -228,7 +231,12 @@ metadata:
     # All secrets referenced in pod template will be synced
 ```
 
-#### Custom Secret Selection
+
+**Result**: Each secret gets its own sub-path:
+- `secret/data/my-app/my-app-secrets` → `{ "username": "...", "password": "..." }`
+- `secret/data/my-app/db-secrets` → `{ "host": "...", "port": "..." }`
+#### Custom Configuration Mode
+When `vault-sync.io/secrets` annotation is provided, all specified keys are written directly to the main vault path with optional prefixes.
 ```yaml
 metadata:
   annotations:
@@ -247,6 +255,9 @@ metadata:
       ]
 ```
 
+
+**Result**: All keys written to the main path:
+- `secret/data/my-app` → `{ "db_username": "...", "db_password": "...", "token": "..." }`
 #### Preserve Secrets on Deletion
 ```yaml
 metadata:
