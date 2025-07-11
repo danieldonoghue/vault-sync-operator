@@ -52,7 +52,7 @@ vault:
 
 image:
   repository: ghcr.io/danieldonoghue/vault-sync-operator
-  tag: "v0.0.1-alpha.1"
+  tag: "v0.0.1-alpha.3"
 
 controllerManager:
   resources:
