@@ -20,9 +20,11 @@ spec:
       labels:
         {{- include "vault-sync-operator.selectorLabels" . | nindent 8 }}
     spec:
-      {{- with .Values.imagePullSecrets }}
+      {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
+        {{- range .Values.imagePullSecrets }}
+        - name: {{ .name }}
+        {{- end }}
       {{- end }}
       serviceAccountName: {{ include "vault-sync-operator.serviceAccountName" . }}
       securityContext:
