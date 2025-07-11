@@ -33,7 +33,15 @@ helm install vault-sync-operator ./charts/vault-sync-operator \
 
 ### Configuration
 
-Create a `values.yaml` file to customize the deployment:
+You can customize the deployment in several ways:
+
+**Option 1: Edit the default values file directly**
+```bash
+# Edit the existing values file
+nano ./charts/vault-sync-operator/values.yaml
+```
+
+**Option 2: Create a custom values file**
 
 ```yaml
 # values.yaml
