@@ -59,7 +59,7 @@ spec:
         - --vault-addr=$(VAULT_ADDR)
         - --vault-role=$(VAULT_ROLE)
         - --vault-auth-path=$(VAULT_AUTH_PATH)
-        image: ghcr.io/danieldonoghue/vault-sync-operator:v0.0.1-alpha.1
+        image: ghcr.io/danieldonoghue/vault-sync-operator:v0.0.1-alpha.3
         env:
         - name: VAULT_ADDR
           value: "http://localhost:8200"  # Change this to your Vault server address
