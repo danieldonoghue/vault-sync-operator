@@ -179,7 +179,7 @@ func (c *Client) prepareDataForKVVersion(path string, data map[string]interface{
 	return data
 }
 
-// isKVv2Path determines if a path is for KV v2 by checking if it contains "/data/"
+// isKVv2Path determines if a path is for KV v2 by checking if it contains "/data/".
 func isKVv2Path(path string) bool {
 	return len(path) > 6 && path[:6] == "secret" && (len(path) > 12 && path[6:12] == "/data/")
 }
