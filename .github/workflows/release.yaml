@@ -351,8 +351,15 @@ jobs:
     - name: Update image version in manifests
       run: |
         VERSION=${{ needs.create-release.outputs.version }}
-        # Update the image tag in the manager manifest
+        # Update the image tag in all manifest files
         sed -i "s|image: ghcr.io/${{ github.repository }}:.*|image: ghcr.io/${{ github.repository }}:${VERSION}|g" config/manager/manager.yaml
+        sed -i "s|image: ghcr.io/${{ github.repository }}:.*|image: ghcr.io/${{ github.repository }}:${VERSION}|g" deploy/manual/04-deployment.yaml
+        
+        # Update the appVersion in Helm chart
+        sed -i "s|appVersion: \".*\"|appVersion: \"${VERSION}\"|g" charts/vault-sync-operator/Chart.yaml
+        
+        # Update version references in documentation
+        sed -i "s|tag: \"v[0-9]\+\.[0-9]\+\.[0-9]\+[^\"]*\"|tag: \"${VERSION}\"|g" docs/DEPLOYMENT.md
         
         # Create a versioned release manifest
         mkdir -p releases/${VERSION}
@@ -381,8 +388,32 @@ jobs:
         tar -czf ../../vault-sync-operator-manifests-${VERSION}.tar.gz .
         cd ../..
 
+    - name: Package Helm chart
+      run: |
+        VERSION=${{ needs.create-release.outputs.version }}
+        # Create Helm chart package
+        cd charts
+        tar -czf ../vault-sync-operator-helm-${VERSION}.tar.gz vault-sync-operator/
+        cd ..
+
     - name: Upload Manifests to Release
       run: |
         gh release upload ${{ needs.create-release.outputs.version }} vault-sync-operator-manifests-${{ needs.create-release.outputs.version }}.tar.gz
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload Helm Chart to Release
+      run: |
+        gh release upload ${{ needs.create-release.outputs.version }} vault-sync-operator-helm-${{ needs.create-release.outputs.version }}.tar.gz
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Commit version updates
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add -A
+        git diff --staged --quiet || git commit -m "chore: update version to ${{ needs.create-release.outputs.version }}"
+        git push
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
