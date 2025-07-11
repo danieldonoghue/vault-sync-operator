@@ -175,12 +175,14 @@ func (r *DeploymentReconciler) syncSecretsToVault(ctx context.Context, deploymen
 	} else {
 		// Auto-discover secrets from deployment pod template
 		log.Info("using auto-discovery mode")
-		vaultData, currentSecretVersions, err = r.syncAutoDiscoveredSecretsWithVersions(ctx, deployment)
+		currentSecretVersions, err = r.syncAutoDiscoveredSecretsToSubPaths(ctx, deployment, vaultPath)
 		if err != nil {
 			metrics.SecretsyncAttempts.WithLabelValues(deployment.Namespace, deployment.Name, "failed").Inc()
 			log.Error(err, "failed to sync auto-discovered secrets")
 			return ctrl.Result{}, err
 		}
+		// In auto-discovery mode, secrets are written to individual sub-paths
+		vaultData = make(map[string]interface{})
 	}
 
 	// Check if secret versions have changed (rotation detection)
@@ -214,13 +216,16 @@ func (r *DeploymentReconciler) syncSecretsToVault(ctx context.Context, deploymen
 		"mode", map[bool]string{true: "custom", false: "auto-discovery"}[hasCustomConfig && secretsToSync != ""])
 
 	// Write to Vault (batch operation for performance)
-	if err := r.VaultClient.WriteSecret(ctx, vaultPath, vaultData); err != nil {
-		metrics.SecretsyncAttempts.WithLabelValues(deployment.Namespace, deployment.Name, "failed").Inc()
-		log.Error(err, "failed to write secret to vault",
-			"path", vaultPath,
-			"secret_count", len(vaultData),
-			"error_details", err.Error())
-		return ctrl.Result{}, fmt.Errorf("failed to write secret to vault: %w", err)
+	// Skip writing for auto-discovery mode as secrets are already written to sub-paths
+	if len(vaultData) > 0 {
+		if err := r.VaultClient.WriteSecret(ctx, vaultPath, vaultData); err != nil {
+			metrics.SecretsyncAttempts.WithLabelValues(deployment.Namespace, deployment.Name, "failed").Inc()
+			log.Error(err, "failed to write secret to vault",
+				"path", vaultPath,
+				"secret_count", len(vaultData),
+				"error_details", err.Error())
+			return ctrl.Result{}, fmt.Errorf("failed to write secret to vault: %w", err)
+		}
 	}
 
 	// Update secret versions annotation for future rotation detection
@@ -306,8 +311,9 @@ func (r *DeploymentReconciler) syncCustomSecretsWithVersions(ctx context.Context
 	return vaultData, secretVersions, nil
 }
 
-// syncAutoDiscoveredSecretsWithVersions auto-discovers and syncs all secrets referenced in the deployment with version tracking.
-func (r *DeploymentReconciler) syncAutoDiscoveredSecretsWithVersions(ctx context.Context, deployment *appsv1.Deployment) (map[string]interface{}, map[string]string, error) {
+
+// syncAutoDiscoveredSecretsToSubPaths auto-discovers secrets and writes each to its own sub-path.
+func (r *DeploymentReconciler) syncAutoDiscoveredSecretsToSubPaths(ctx context.Context, deployment *appsv1.Deployment, basePath string) (map[string]string, error) {
 	log := r.Log.WithValues("deployment", deployment.Name, "namespace", deployment.Namespace)
 
 	// Extract secret names from the deployment pod template
@@ -315,7 +321,7 @@ func (r *DeploymentReconciler) syncAutoDiscoveredSecretsWithVersions(ctx context
 
 	if len(secretNames) == 0 {
 		log.Info("no secrets found in deployment pod template")
-		return map[string]interface{}{}, map[string]string{}, nil
+		return map[string]string{}, nil
 	}
 
 	log.Info("auto-discovered secrets", "secrets", secretNames)
@@ -323,8 +329,7 @@ func (r *DeploymentReconciler) syncAutoDiscoveredSecretsWithVersions(ctx context
 	// Track discovered secrets metric
 	metrics.SecretsDiscovered.WithLabelValues(deployment.Namespace, deployment.Name).Set(float64(len(secretNames)))
 
-	// Collect all secret data and versions
-	vaultData := make(map[string]interface{})
+	// Collect secret versions and write each secret to its own sub-path
 	secretVersions := make(map[string]string)
 
 	for secretName := range secretNames {
@@ -340,23 +345,36 @@ func (r *DeploymentReconciler) syncAutoDiscoveredSecretsWithVersions(ctx context
 				"secret", secretName,
 				"namespace", deployment.Namespace,
 				"deployment", deployment.Name)
-			return nil, nil, fmt.Errorf("failed to get secret %s: %w", secretName, err)
+			return nil, fmt.Errorf("failed to get secret %s: %w", secretName, err)
 		}
 
 		// Track secret version for rotation detection
 		secretVersions[secretName] = secret.ResourceVersion
 
-		// Create a nested object for this secret
+		// Create vault data for this secret (flattened structure)
 		secretData := make(map[string]interface{})
 		for key, value := range secret.Data {
 			secretData[key] = string(value)
 		}
 
-		// Store the entire secret as a nested object
-		vaultData[secretName] = secretData
+		// Write to sub-path: basePath/secretName
+		secretPath := fmt.Sprintf("%s/%s", basePath, secretName)
+		
+		log.Info("writing secret to vault sub-path", 
+			"secret", secretName,
+			"path", secretPath,
+			"keys", len(secretData))
+
+		if err := r.VaultClient.WriteSecret(ctx, secretPath, secretData); err != nil {
+			log.Error(err, "failed to write secret to vault sub-path",
+				"secret", secretName,
+				"path", secretPath,
+				"error_details", err.Error())
+			return nil, fmt.Errorf("failed to write secret %s to vault: %w", secretName, err)
+		}
 	}
 
-	return vaultData, secretVersions, nil
+	return secretVersions, nil
 }
 
 // extractSecretNamesFromPodTemplate extracts all secret names referenced in the pod template.
