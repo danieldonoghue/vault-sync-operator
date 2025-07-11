@@ -413,7 +413,10 @@ jobs:
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         git add -A
-        git diff --staged --quiet || git commit -m "chore: update version to ${{ needs.create-release.outputs.version }}"
-        git push
+        if ! git diff --staged --quiet; then
+          git commit -m "chore: update version to ${{ needs.create-release.outputs.version }}"
+          # Push to master branch
+          git push origin HEAD:master
+        fi
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
