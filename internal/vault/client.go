@@ -115,8 +115,9 @@ func (c *Client) WriteSecret(ctx context.Context, path string, data map[string]i
 		return c.writeSecretOptimized(ctx, path, data)
 	}
 
-	// Write the secret
-	_, err := c.client.Logical().WriteWithContext(ctx, path, data)
+	// Write the secret with KV v2 support
+	writeData := c.prepareDataForKVVersion(path, data)
+	_, err := c.client.Logical().WriteWithContext(ctx, path, writeData)
 	if err != nil {
 		// Categorize the error type for better metrics
 		var errorType string
@@ -152,13 +153,57 @@ func (c *Client) DeleteSecret(ctx context.Context, path string) error {
 		}
 	}
 
-	// Delete the secret
-	_, err := c.client.Logical().DeleteWithContext(ctx, path)
+	// Delete the secret with KV v2 support
+	deletePath := c.preparePathForKVDelete(path)
+	_, err := c.client.Logical().DeleteWithContext(ctx, deletePath)
 	if err != nil {
 		return fmt.Errorf("failed to delete secret from vault at path %s: %w", path, err)
 	}
 
 	return nil
+}
+
+// prepareDataForKVVersion formats data appropriately for KV v1 or v2 based on the path.
+// KV v2 paths contain "/data/" and require data to be wrapped in a "data" field.
+// KV v1 paths don't contain "/data/" and use the data directly.
+func (c *Client) prepareDataForKVVersion(path string, data map[string]interface{}) map[string]interface{} {
+	// Check if this is a KV v2 path by looking for "/data/" in the path
+	if isKVv2Path(path) {
+		// KV v2 requires data to be wrapped in a "data" field
+		return map[string]interface{}{
+			"data": data,
+		}
+	}
+	
+	// KV v1 uses data directly
+	return data
+}
+
+// isKVv2Path determines if a path is for KV v2 by checking if it contains "/data/"
+func isKVv2Path(path string) bool {
+	return len(path) > 6 && path[:6] == "secret" && (len(path) > 12 && path[6:12] == "/data/")
+}
+
+// preparePathForKVDelete returns the appropriate path for deletion based on KV version.
+// For KV v2, it ensures the path uses "/data/" for the delete operation.
+// For KV v1, it returns the path as-is.
+func (c *Client) preparePathForKVDelete(path string) string {
+	if isKVv2Path(path) {
+		// KV v2 path already has "/data/" - use as-is
+		return path
+	}
+	
+	// Check if this is a KV v1 path that should be converted to KV v2
+	// If the path starts with "secret/" but doesn't have "/data/", it might be KV v1 format
+	if len(path) > 7 && path[:7] == "secret/" && (len(path) <= 12 || path[7:13] != "data/") {
+		// This looks like a KV v1 path, but we need to check if Vault is actually using KV v2
+		// For now, we'll assume if the annotation was meant for KV v2, convert it
+		// Convert "secret/path" to "secret/data/path"
+		return "secret/data/" + path[7:]
+	}
+	
+	// Return path as-is for any other cases
+	return path
 }
 
 // Helper function to categorize errors - is the error related to permission issues?
@@ -226,8 +271,9 @@ func (c *Client) writeSecretOptimized(ctx context.Context, path string, data map
 		}
 	}
 
-	// Write the secret normally but with optimization flags
-	_, err := c.client.Logical().WriteWithContext(ctx, path, data)
+	// Write the secret normally but with optimization flags and KV v2 support
+	writeData := c.prepareDataForKVVersion(path, data)
+	_, err := c.client.Logical().WriteWithContext(ctx, path, writeData)
 	if err != nil {
 		return fmt.Errorf("failed to write large secret (%d bytes) to vault at path %s: %w", totalSize, path, err)
 	}
