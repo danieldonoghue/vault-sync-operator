@@ -11,6 +11,11 @@ image:
 
 imagePullSecrets:
   - name: ghcr-secret
+    create: true
+    registry: ghcr.io
+    username: ""  # Set via --set imagePullSecrets[0].username=your-username
+    password: ""  # Set via --set imagePullSecrets[0].password=your-pat
+    email: ""     # Set via --set imagePullSecrets[0].email=your-email
 nameOverride: ""
 fullnameOverride: ""
 
