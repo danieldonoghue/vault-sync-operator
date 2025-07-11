@@ -27,6 +27,7 @@ const (
 	VaultPreserveOnDeleteAnnotation = "vault-sync.io/preserve-on-delete"
 	VaultSecretVersionsAnnotation   = "vault-sync.io/secret-versions" //nolint:gosec // This is an annotation name, not a credential
 	VaultRotationCheckAnnotation    = "vault-sync.io/rotation-check"  // Control rotation detection (enabled|disabled|<frequency>)
+	VaultReconcileAnnotation        = "vault-sync.io/reconcile"       // Control periodic reconciliation (off|<duration>)
 )
 
 // VaultSyncFinalizer is the finalizer name used by the operator.
@@ -89,7 +90,21 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// Sync secrets to Vault
-	return r.syncSecretsToVault(ctx, deployment)
+	result, err := r.syncSecretsToVault(ctx, deployment)
+	if err != nil {
+		return result, err
+	}
+	
+	// Check if periodic reconciliation is enabled
+	reconcileInterval := r.getReconcileInterval(deployment)
+	if reconcileInterval > 0 {
+		log.V(1).Info("periodic reconciliation enabled", 
+			"interval", reconcileInterval,
+			"next_reconcile", time.Now().Add(reconcileInterval))
+		result.RequeueAfter = reconcileInterval
+	}
+	
+	return result, nil
 }
 
 // handleDeletion handles the deletion of secrets from Vault when a deployment is deleted.
@@ -535,4 +550,34 @@ func (r *DeploymentReconciler) updateSecretVersionsAnnotation(ctx context.Contex
 func (r *DeploymentReconciler) isRotationCheckDisabled(deployment *appsv1.Deployment) bool {
 	rotationCheck, exists := deployment.Annotations[VaultRotationCheckAnnotation]
 	return exists && rotationCheck == "disabled"
+}
+
+// getReconcileInterval parses the reconciliation interval from the vault-sync.io/reconcile annotation.
+// Returns the duration if valid, or zero duration if disabled or invalid.
+func (r *DeploymentReconciler) getReconcileInterval(deployment *appsv1.Deployment) time.Duration {
+	reconcileValue, exists := deployment.Annotations[VaultReconcileAnnotation]
+	if !exists || reconcileValue == "" || reconcileValue == "off" {
+		return 0 // Disabled
+	}
+	
+	duration, err := time.ParseDuration(reconcileValue)
+	if err != nil {
+		r.Log.Error(err, "invalid reconcile interval annotation, disabling periodic reconciliation",
+			"deployment", deployment.Name,
+			"namespace", deployment.Namespace,
+			"annotation_value", reconcileValue)
+		return 0 // Disabled on parse error
+	}
+	
+	// Enforce minimum interval of 30 seconds to prevent excessive reconciliation
+	if duration < 30*time.Second {
+		r.Log.Info("reconcile interval too short, using minimum of 30 seconds",
+			"deployment", deployment.Name,
+			"namespace", deployment.Namespace,
+			"requested", duration,
+			"enforced", 30*time.Second)
+		return 30 * time.Second
+	}
+	
+	return duration
 }
