@@ -1,0 +1,147 @@
+{{- if .Values.rbac.create -}}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "vault-sync-operator.managerRoleName" . }}
+  labels:
+    {{- include "vault-sync-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rbac
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
+- apiGroups:
+  - apps
+  resources:
+  - deployments/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - vault.example.com
+  resources:
+  - vaultsyncs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - vault.example.com
+  resources:
+  - vaultsyncs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - vault.example.com
+  resources:
+  - vaultsyncs/status
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "vault-sync-operator.authProxyRoleName" . }}
+  labels:
+    {{- include "vault-sync-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: kube-rbac-proxy
+rules:
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "vault-sync-operator.kubeRbacProxyClusterRoleName" . }}
+  labels:
+    {{- include "vault-sync-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: kube-rbac-proxy
+rules:
+- nonResourceURLs:
+  - "/metrics"
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "vault-sync-operator.managerRoleName" . }}-binding
+  labels:
+    {{- include "vault-sync-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rbac
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "vault-sync-operator.managerRoleName" . }}
+subjects:
+- kind: ServiceAccount
+  name: {{ include "vault-sync-operator.serviceAccountName" . }}
+  namespace: {{ include "vault-sync-operator.namespace" . }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "vault-sync-operator.authProxyRoleName" . }}-binding
+  labels:
+    {{- include "vault-sync-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: kube-rbac-proxy
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "vault-sync-operator.authProxyRoleName" . }}
+subjects:
+- kind: ServiceAccount
+  name: {{ include "vault-sync-operator.serviceAccountName" . }}
+  namespace: {{ include "vault-sync-operator.namespace" . }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "vault-sync-operator.kubeRbacProxyClusterRoleName" . }}-binding
+  labels:
+    {{- include "vault-sync-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: kube-rbac-proxy
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "vault-sync-operator.kubeRbacProxyClusterRoleName" . }}
+subjects:
+- kind: ServiceAccount
+  name: {{ include "vault-sync-operator.serviceAccountName" . }}
+  namespace: {{ include "vault-sync-operator.namespace" . }}
+{{- end }}

@@ -51,3 +51,5 @@ Thumbs.db
 # Coverage files
 cover.out
 coverage.out
+
+.claude/

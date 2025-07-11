@@ -25,20 +25,47 @@ The Vault Sync Operator watches for Kubernetes Deployments with specific annotat
 
 ### Installation
 
-1. Clone the repository:
+The Vault Sync Operator supports multiple deployment methods:
+
+1. **Helm Chart (Recommended)**:
 ```bash
 git clone https://github.com/danieldonoghue/vault-sync-operator.git
 cd vault-sync-operator
+helm install vault-sync-operator ./charts/vault-sync-operator \
+  --namespace vault-sync-operator-system \
+  --create-namespace
 ```
 
-2. Build and deploy the operator:
+2. **Kustomize**:
 ```bash
+git clone https://github.com/danieldonoghue/vault-sync-operator.git
+cd vault-sync-operator
+kubectl apply -k config/default/
+```
+
+3. **Manual kubectl**:
+```bash
+git clone https://github.com/danieldonoghue/vault-sync-operator.git
+cd vault-sync-operator
+kubectl apply -f deploy/manual/ --recursive
+```
+
+4. **Make (Development)**:
+```bash
+git clone https://github.com/danieldonoghue/vault-sync-operator.git
+cd vault-sync-operator
 make deploy
 ```
+
+For detailed deployment instructions, see [DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ### Configuration
 
 1. **Configure Vault Kubernetes Auth Backend**:
+
+For detailed Vault setup instructions, see [VAULT-SETUP-GUIDE.md](docs/VAULT-SETUP-GUIDE.md).
+
+Quick setup:
 
 ```bash
 # Enable Kubernetes auth

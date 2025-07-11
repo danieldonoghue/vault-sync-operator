@@ -1,80 +1,101 @@
 # Vault Sync Operator - VM Deployment Guide
 
 ## Overview
-This package contains all the necessary files and scripts to deploy the Vault Sync Operator on your Debian 12 VM with k3s.
+This guide helps you deploy the Vault Sync Operator on your Debian 12 VM with k3s using multiple deployment methods.
 
-## Package Contents
-```
-vault-sync-operator-vm-deployment/
-├── config/                           # Kubernetes manifests
-│   ├── crd/                         # Custom Resource Definitions
-│   ├── rbac/                        # RBAC resources
-│   ├── manager/                     # Operator deployment
-│   └── default/                     # Combined configuration
-├── scripts/
-│   ├── deploy-on-vm.sh              # Main deployment script
-│   └── validate-manifests.sh       # Validation script
-└── README.md                        # This file
-```
-
-## Pre-requisites
+## Prerequisites
 - Debian 12 VM with k3s running
 - Vault installed and configured
 - kubectl configured to access your k3s cluster
 - Vault authentication configured for Kubernetes
 
-## Quick Deployment
+## Deployment Methods
 
-### Option 1: Automated Deployment (Recommended)
+### Method 1: Helm Chart (Recommended)
+
+Create a custom values file for your VM:
+
+```yaml
+# vm-values.yaml
+vault:
+  address: "http://192.168.1.100:8200"  # Replace with your VM's IP
+  role: "vault-sync-operator"
+  authPath: "kubernetes"
+
+controllerManager:
+  resources:
+    limits:
+      cpu: 500m
+      memory: 128Mi
+    requests:
+      cpu: 10m
+      memory: 64Mi
+```
+
+Deploy using Helm:
+
+```bash
+# Install Helm chart
+helm install vault-sync-operator ./charts/vault-sync-operator \
+  --namespace vault-sync-operator-system \
+  --create-namespace \
+  --values vm-values.yaml
+```
+
+### Method 2: Kustomize
+
+**⚠️ Important**: You must update the VAULT_ADDR for your VM setup.
+
+Edit `config/manager/manager.yaml` to update Vault address:
+
+```yaml
+env:
+- name: VAULT_ADDR
+  value: "http://192.168.1.100:8200"  # Replace with your VM's IP
+- name: VAULT_ROLE
+  value: "vault-sync-operator"
+- name: VAULT_AUTH_PATH
+  value: "kubernetes"
+```
+
+Deploy with kustomize:
+
+```bash
+# Apply using kustomize
+kubectl apply -k config/default/
+```
+
+### Method 3: Manual kubectl
+
+**⚠️ Important**: You must update the VAULT_ADDR for your VM setup.
+
+Edit `deploy/manual/04-deployment.yaml` to update Vault settings:
+
+```yaml
+env:
+- name: VAULT_ADDR
+  value: "http://192.168.1.100:8200"  # Replace with your VM's IP
+- name: VAULT_ROLE
+  value: "vault-sync-operator"
+- name: VAULT_AUTH_PATH
+  value: "kubernetes"
+```
+
+Deploy manually:
+
+```bash
+# Apply all manual manifests
+kubectl apply -f deploy/manual/ --recursive
+```
+
+### Method 4: Automated Script (Legacy)
+
 ```bash
 # Set your Vault address (replace with your VM's IP)
 export VAULT_ADDR="http://192.168.1.100:8200"
 
 # Run the deployment script
 ./scripts/deploy-on-vm.sh
-```
-
-### Option 2: Manual Step-by-Step Deployment
-```bash
-# 1. Create namespace
-kubectl apply -f config/default/namespace.yaml
-
-# 2. Apply CRDs
-kubectl apply -k config/crd/
-
-# 3. Apply RBAC
-kubectl apply -k config/rbac/
-
-# 4. Apply manager
-kubectl apply -k config/manager/
-
-# 5. Configure Vault connection (replace IP address)
-kubectl patch deployment vault-sync-operator-controller-manager \
-  -n vault-sync-operator-system \
-  --type='merge' \
-  -p='{
-    "spec": {
-      "template": {
-        "spec": {
-          "containers": [
-            {
-              "name": "manager",
-              "env": [
-                {
-                  "name": "VAULT_ADDR",
-                  "value": "http://192.168.1.100:8200"
-                },
-                {
-                  "name": "VAULT_ROLE",
-                  "value": "vault-sync-operator"
-                }
-              ]
-            }
-          ]
-        }
-      }
-    }
-  }'
 ```
 
 ## Vault Configuration

@@ -1,0 +1,123 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "vault-sync-operator.deploymentName" . }}
+  namespace: {{ include "vault-sync-operator.namespace" . }}
+  labels:
+    {{- include "vault-sync-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: manager
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "vault-sync-operator.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "vault-sync-operator.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "vault-sync-operator.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      containers:
+      {{- if .Values.kubeRbacProxy.enabled }}
+      - name: kube-rbac-proxy
+        image: "{{ .Values.kubeRbacProxy.image.repository }}:{{ .Values.kubeRbacProxy.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        args:
+        - "--secure-listen-address={{ .Values.kubeRbacProxy.secureListenAddress }}"
+        - "--upstream={{ .Values.kubeRbacProxy.upstreamAddress }}"
+        - "--logtostderr=true"
+        - "--v=0"
+        ports:
+        - containerPort: 8443
+          protocol: TCP
+          name: https
+        resources:
+          {{- toYaml .Values.kubeRbacProxy.resources | nindent 12 }}
+      {{- end }}
+      - name: manager
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        args:
+        - "--health-probe-bind-address={{ .Values.controllerManager.healthProbe.bindAddress }}"
+        {{- if .Values.kubeRbacProxy.enabled }}
+        - "--metrics-bind-address={{ .Values.controllerManager.metrics.bindAddress }}"
+        {{- else }}
+        - "--metrics-bind-address=0.0.0.0:8080"
+        {{- end }}
+        {{- if .Values.controllerManager.leaderElect }}
+        - "--leader-elect"
+        {{- end }}
+        - "--vault-addr=$(VAULT_ADDR)"
+        - "--vault-role=$(VAULT_ROLE)"
+        - "--vault-auth-path=$(VAULT_AUTH_PATH)"
+        env:
+        - name: VAULT_ADDR
+          value: {{ .Values.vault.address | quote }}
+        - name: VAULT_ROLE
+          value: {{ .Values.vault.role | quote }}
+        - name: VAULT_AUTH_PATH
+          value: {{ .Values.vault.authPath | quote }}
+        - name: GOMEMLIMIT
+          valueFrom:
+            resourceFieldRef:
+              resource: limits.memory
+        - name: GOMAXPROCS
+          valueFrom:
+            resourceFieldRef:
+              resource: limits.cpu
+        {{- with .Values.env }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        ports:
+        - containerPort: 8081
+          protocol: TCP
+          name: health
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: health
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: health
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          {{- toYaml .Values.controllerManager.resources | nindent 12 }}
+        {{- with .Values.volumeMounts }}
+        volumeMounts:
+          {{- toYaml . | nindent 12 }}
+        {{- end }}
+      {{- with .Values.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

@@ -37,3 +37,6 @@ spec:
         - "--health-probe-bind-address=:8081"
         - "--metrics-bind-address=127.0.0.1:8080"
         - "--leader-elect"
+        - "--vault-addr=$(VAULT_ADDR)"
+        - "--vault-role=$(VAULT_ROLE)"
+        - "--vault-auth-path=$(VAULT_AUTH_PATH)"
