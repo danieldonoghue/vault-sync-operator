@@ -408,18 +408,3 @@ jobs:
         gh release upload ${{ needs.create-release.outputs.version }} vault-sync-operator-helm-${{ needs.create-release.outputs.version }}.tar.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Commit version updates
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add -A
-        if ! git diff --staged --quiet; then
-          git commit -m "chore: update version to ${{ needs.create-release.outputs.version }}"
-          # Pull remote changes and merge
-          git pull origin master
-          # Push to master branch
-          git push origin HEAD:master
-        fi
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
