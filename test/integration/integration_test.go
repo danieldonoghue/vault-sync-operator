@@ -1173,6 +1173,123 @@ func (suite *IntegrationTestSuite) TestChaosRecovery(t *testing.T) {
 	secretData = data["chaos-secret"].(map[string]interface{})
 	assert.Equal(t, "chaos-password", secretData["password"])
 }
+
+func (suite *IntegrationTestSuite) TestPeriodicReconciliation(t *testing.T) {
+	ctx := context.Background()
+
+	// Create initial secret
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "periodic-secret",
+			Namespace: "default",
+		},
+		Data: map[string][]byte{
+			"password": []byte("periodic-password"),
+		},
+	}
+	err := suite.k8sClient.Create(ctx, secret)
+	require.NoError(t, err)
+
+	// Create deployment with periodic reconciliation enabled
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "periodic-app",
+			Namespace: "default",
+			Annotations: map[string]string{
+				"vault-sync.io/path":      "secret/data/periodic-app",
+				"vault-sync.io/reconcile": "30s", // Short interval for testing
+			},
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: &[]int32{1}[0],
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app": "periodic-app",
+				},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"app": "periodic-app",
+					},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  "app",
+							Image: "nginx:latest",
+							Env: []corev1.EnvVar{
+								{
+									Name: "PASSWORD",
+									ValueFrom: &corev1.EnvVarSource{
+										SecretKeyRef: &corev1.SecretKeySelector{
+											LocalObjectReference: corev1.LocalObjectReference{
+												Name: "periodic-secret",
+											},
+											Key: "password",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	err = suite.k8sClient.Create(ctx, deployment)
+	require.NoError(t, err)
+
+	// Initial reconcile
+	result, err := suite.reconciler.Reconcile(ctx, ctrl.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      "periodic-app",
+			Namespace: "default",
+		},
+	})
+	require.NoError(t, err)
+
+	// Verify RequeueAfter is set for periodic reconciliation
+	assert.Equal(t, 30*time.Second, result.RequeueAfter)
+
+	// Verify initial state in Vault
+	vaultPath := "clusters/test-cluster/secret/data/periodic-app"
+	vaultSecret, err := suite.vaultClient.Logical().Read(vaultPath)
+	require.NoError(t, err)
+	data := vaultSecret.Data["data"].(map[string]interface{})
+	secretData := data["periodic-secret"].(map[string]interface{})
+	assert.Equal(t, "periodic-password", secretData["password"])
+
+	// Manually delete the secret from Vault to simulate accidental deletion
+	_, err = suite.vaultClient.Logical().Delete(vaultPath)
+	require.NoError(t, err)
+
+	// Verify secret is deleted
+	vaultSecret, err = suite.vaultClient.Logical().Read(vaultPath)
+	require.NoError(t, err)
+	assert.Nil(t, vaultSecret) // Should be nil when deleted
+
+	// Reconcile again (periodic reconciliation should restore the secret)
+	result, err = suite.reconciler.Reconcile(ctx, ctrl.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      "periodic-app",
+			Namespace: "default",
+		},
+	})
+	require.NoError(t, err)
+
+	// Verify RequeueAfter is still set
+	assert.Equal(t, 30*time.Second, result.RequeueAfter)
+
+	// Verify secret is restored in Vault
+	vaultSecret, err = suite.vaultClient.Logical().Read(vaultPath)
+	require.NoError(t, err)
+	data = vaultSecret.Data["data"].(map[string]interface{})
+	secretData = data["periodic-secret"].(map[string]interface{})
+	assert.Equal(t, "periodic-password", secretData["password"])
+}
+
 func (suite *IntegrationTestSuite) TearDownSuite() {
 	if suite.testEnv != nil {
 		_ = suite.testEnv.Stop()
