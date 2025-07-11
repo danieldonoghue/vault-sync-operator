@@ -1,0 +1,63 @@
+---
+# Example: Periodic Reconciliation
+# This example demonstrates how to enable periodic reconciliation to automatically
+# restore secrets that are accidentally deleted from Vault.
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: periodic-reconcile-secret
+  namespace: default
+type: Opaque
+data:
+  # base64 encoded values
+  database_url: cG9zdGdyZXNxbDovL2xvY2FsaG9zdDo1NDMyL215ZGI=  # postgresql://localhost:5432/mydb
+  api_key: bXlfc3VwZXJfc2VjcmV0X2FwaV9rZXk=  # my_super_secret_api_key
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: periodic-reconcile-app
+  namespace: default
+  annotations:
+    # Enable sync to Vault
+    vault-sync.io/path: "secret/data/periodic-reconcile-app"
+    
+    # Enable periodic reconciliation every 2 minutes
+    # This will automatically restore secrets if they are deleted from Vault
+    vault-sync.io/reconcile: "2m"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: periodic-reconcile-app
+  template:
+    metadata:
+      labels:
+        app: periodic-reconcile-app
+    spec:
+      containers:
+      - name: app
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: periodic-reconcile-secret
+              key: database_url
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: periodic-reconcile-secret
+              key: api_key
+
+---
+# To test periodic reconciliation:
+# 1. Apply this example: kubectl apply -f examples/periodic-reconciliation-example.yaml
+# 2. Verify secret is synced: vault kv get secret/data/periodic-reconcile-app/periodic-reconcile-secret
+# 3. Delete the secret from Vault: vault kv delete secret/data/periodic-reconcile-app/periodic-reconcile-secret
+# 4. Wait 2 minutes and check - the secret should be automatically restored
+# 5. Check logs: kubectl logs -n vault-sync-operator-system deployment/vault-sync-operator-controller-manager

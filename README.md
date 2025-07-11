@@ -217,6 +217,7 @@ The operator uses the following annotations to control secret synchronization:
 | `vault-sync.io/path` | ✅ | Vault storage path (enables sync) | `"secret/data/my-app"` |
 | `vault-sync.io/secrets` | ❌ | Custom secret configuration (JSON) | See examples below |
 | `vault-sync.io/preserve-on-delete` | ❌ | Prevent deletion from Vault on deployment deletion | `"true"` |
+| `vault-sync.io/reconcile` | ❌ | Periodic reconciliation interval (off by default) | `"5m"`, `"1h"`, `"off"` |
 
 ### Synchronization Modes
 
@@ -258,6 +259,29 @@ metadata:
 
 **Result**: All keys written to the main path:
 - `secret/data/my-app` → `{ "db_username": "...", "db_password": "...", "token": "..." }`
+
+#### Periodic Reconciliation
+Enable periodic reconciliation to automatically restore secrets that are accidentally deleted from Vault:
+
+```yaml
+metadata:
+  annotations:
+    vault-sync.io/path: "secret/data/my-app"
+    vault-sync.io/reconcile: "5m"  # Check every 5 minutes
+```
+
+**Benefits**:
+- Automatically restores deleted secrets
+- Provides resilience against manual vault operations
+- Configurable interval (minimum 30 seconds)
+- Disabled by default for optimal performance
+
+**Configuration Examples**:
+- `"5m"` - Check every 5 minutes
+- `"1h"` - Check every hour  
+- `"30s"` - Check every 30 seconds (minimum)
+- `"off"` - Disabled (default)
+
 #### Preserve Secrets on Deletion
 ```yaml
 metadata:
@@ -431,6 +455,7 @@ The operator uses the following annotations to control secret synchronization:
 | `vault-sync.io/path` | ✅ | Vault storage path (enables sync) | `"secret/data/my-app"` |
 | `vault-sync.io/secrets` | ❌ | Custom secret configuration (JSON) | See examples below |
 | `vault-sync.io/preserve-on-delete` | ❌ | Prevent deletion from Vault on deployment deletion | `"true"` |
+| `vault-sync.io/reconcile` | ❌ | Periodic reconciliation interval (off by default) | `"5m"`, `"1h"`, `"off"` |
 
 ### Annotation Examples
 
@@ -634,6 +659,7 @@ The operator uses the following annotations to control secret synchronization:
 | `vault-sync.io/path` | ✅ | Vault storage path (enables sync) | `"secret/data/my-app"` |
 | `vault-sync.io/secrets` | ❌ | Custom secret configuration (JSON) | See examples below |
 | `vault-sync.io/preserve-on-delete` | ❌ | Prevent deletion from Vault on deployment deletion | `"true"` |
+| `vault-sync.io/reconcile` | ❌ | Periodic reconciliation interval (off by default) | `"5m"`, `"1h"`, `"off"` |
 
 ### Annotation Examples
 
