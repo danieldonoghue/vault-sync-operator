@@ -255,7 +255,7 @@ vault:
 
 image:
   repository: ghcr.io/danieldonoghue/vault-sync-operator
-  tag: "v0.0.1-alpha.1"
+  tag: "latest"
   pullPolicy: IfNotPresent
 
 controllerManager:

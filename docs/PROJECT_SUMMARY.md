@@ -117,31 +117,15 @@ spec:
 3. **Vault Policies**: Configurable Vault policies for least privilege access
 4. **Secure Communication**: TLS support for Vault communication
 
-## Build and Deployment
+## Deployment
 
-### Local Development
-```bash
-# Build the operator
-make build
+The operator supports multiple deployment methods:
 
-# Run locally (requires kubeconfig)
-make run
-```
+1. **Helm Chart** (Recommended) - Most flexible and production-ready
+2. **Kustomize** - Good for GitOps workflows  
+3. **Manual kubectl** - Simple direct deployment
 
-### Container Deployment
-```bash
-# Build container image
-make docker-build
-
-# Deploy to Kubernetes
-make deploy
-```
-
-### Vault Setup
-```bash
-# Run the setup script
-./scripts/setup-vault.sh
-```
+See the [Deployment Guide](DEPLOYMENT.md) for detailed installation instructions.
 
 ## Configuration Options
 
@@ -159,25 +143,24 @@ The operator supports various configuration flags:
 - **Multiple Secrets Example**: Complex scenario with multiple secrets and different prefixes
 - **Test Suite**: Ginkgo/Gomega based tests for controller logic
 
-## Production Features Implemented
+## Production Features
 
-1. **Monitoring**: ✅ Comprehensive Prometheus metrics for sync operations, errors, and performance
-2. **Error Handling**: ✅ Enhanced error handling with retry logic and detailed logging
-3. **Multi-tenancy**: ✅ Namespace-based isolation and configurable Vault paths
-4. **CI/CD**: ✅ GitHub Actions for automated testing, building, and releases
-5. **Container Optimization**: ✅ Runtime optimization for Kubernetes environments
-6. **Health Checks**: ✅ Vault connectivity and authentication health probes
-7. **Secret Rotation**: ✅ Automatic detection and handling of secret changes
-8. **Multi-cluster**: ✅ Documentation and patterns for multi-cluster deployments
+1. **Comprehensive Monitoring**: Prometheus metrics for sync operations, errors, and performance tracking
+2. **Robust Error Handling**: Enhanced error handling with retry logic and detailed logging for troubleshooting
+3. **Multi-tenancy Support**: Namespace-based isolation and configurable Vault paths for secure multi-tenant usage
+4. **Automated CI/CD**: Continuous integration and automated releases via GitHub Actions
+5. **Container Optimization**: Runtime optimization specifically tuned for Kubernetes environments
+6. **Health Monitoring**: Built-in Vault connectivity and authentication health probes
+7. **Secret Rotation Detection**: Automatic detection and synchronization of secret changes
+8. **Multi-cluster Support**: Complete documentation and deployment patterns for multi-cluster environments
 
-## Dependencies
+## Prerequisites
 
-- **Go 1.24**: Current Go version used
-- **controller-runtime v0.16.3**: Kubernetes controller framework
-- **Vault API client**: HashiCorp Vault Go client
-- **Kubernetes APIs**: For deployment and secret operations
+- **Kubernetes cluster** (v1.20+): Target deployment environment  
+- **HashiCorp Vault**: Configured with Kubernetes authentication
+- **kubectl**: Configured to access your cluster
 
-The project is ready for development, testing, and deployment in Kubernetes environments with HashiCorp Vault integration.
+The operator is production-ready for deployment in Kubernetes environments with HashiCorp Vault integration.
 
 ## Monitoring and Observability
 

@@ -79,7 +79,7 @@ func (c *Client) isDataTooLarge(data map[string]interface{}) bool {
 
 1. **Size Monitoring**: Tracks secret sizes and logs warnings for large secrets
 2. **Memory-Aware Processing**: Uses specialized handling for large secrets
-3. **Streaming Ready**: Architecture supports future streaming implementations
+3. **Efficient Processing**: Optimized architecture for handling large secrets
 
 ### Memory Usage Patterns
 
@@ -117,21 +117,9 @@ Monitor operator performance using these indicators:
 
 ## Configuration Tuning
 
-### Environment Variables
+### Performance Configuration
 
-Future versions will support these configuration options:
-
-```yaml
-env:
-- name: VAULT_RATE_LIMIT_RPS
-  value: "10"                    # Requests per second
-- name: VAULT_RATE_LIMIT_BURST
-  value: "20"                    # Burst capacity
-- name: VAULT_BATCH_SIZE
-  value: "5"                     # Operations per batch
-- name: VAULT_LARGE_SECRET_THRESHOLD
-  value: "1048576"               # Bytes (1MB)
-```
+The operator provides built-in performance optimizations and can be tuned through deployment configuration. See the [Deployment Guide](DEPLOYMENT.md) for resource limits, replica scaling, and operational parameters.
 
 ### Scaling Considerations
 
@@ -198,32 +186,25 @@ If Vault servers are overwhelmed:
 1. Reduce rate limits temporarily
 2. Increase batch processing delays
 3. Scale Vault infrastructure
-4. Implement circuit breaker patterns (future enhancement)
+4. Monitor Vault connectivity and adjust operations accordingly
 
 ### Error Recovery
 
 The operator includes robust error handling:
 
 1. **Retry Logic**: Automatic retries with exponential backoff
-2. **Circuit Breaking**: Future enhancement for Vault failure detection
+2. **Error Handling**: Comprehensive error detection and logging
 3. **Graceful Degradation**: Continues operating even if some operations fail
 4. **Detailed Logging**: Comprehensive error information for debugging
 
-## Future Enhancements
+## Performance Monitoring
 
-### Planned Optimizations
+The operator exposes comprehensive Prometheus metrics for monitoring performance and identifying optimization opportunities. Key metrics include:
 
-1. **Adaptive Rate Limiting**: Dynamically adjust rates based on Vault response times
-2. **Connection Pooling**: Advanced connection management for high-throughput scenarios
-3. **Compression**: Compress large secret data before transmission
-4. **Caching**: Optional read caching for frequently accessed secrets (with security considerations)
-5. **Streaming**: Stream very large secrets instead of loading them entirely into memory
+- **Sync Operations**: Success/failure rates and duration
+- **Rate Limiting**: Request throttling and queue metrics  
+- **Memory Usage**: Resource utilization patterns
+- **Vault Response Times**: End-to-end operation latency
+- **Error Tracking**: Categorized error rates and types
 
-### Performance Monitoring Dashboard
-
-Future versions will include Grafana dashboard templates for:
-
-- Rate limiting efficiency
-- Batch operation performance
-- Memory usage patterns
-- Vault server health correlation
+Configure your monitoring system to alert on performance degradation and use the metrics to tune the deployment for optimal performance in your environment.

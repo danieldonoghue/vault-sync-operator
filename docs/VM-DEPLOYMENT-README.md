@@ -136,31 +136,67 @@ vault kv put secret/test-app \
     database_url=postgres://localhost:5432/testdb
 ```
 
-### Create a VaultSync Resource
+### Create a Test Deployment with Vault Sync
 ```bash
 kubectl apply -f - <<EOF
-apiVersion: vault.example.com/v1alpha1
-kind: VaultSync
+apiVersion: v1
+kind: Secret
 metadata:
-  name: test-sync
+  name: test-app-secret
   namespace: default
+type: Opaque
+data:
+  username: dGVzdHVzZXI=        # base64: testuser
+  password: dGVzdHBhc3MxMjM=    # base64: testpass123
+  database_url: cG9zdGdyZXM6Ly9sb2NhbGhvc3Q6NTQzMi90ZXN0ZGI=  # base64: postgres://localhost:5432/testdb
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-app
+  namespace: default
+  annotations:
+    vault-sync.io/path: "secret/data/test-app"
 spec:
-  vaultPath: "secret/test-app"
-  secretName: "test-app-secret"
-  refreshInterval: "30s"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test-app
+  template:
+    metadata:
+      labels:
+        app: test-app
+    spec:
+      containers:
+      - name: app
+        image: nginx:latest
+        env:
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: test-app-secret
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: test-app-secret
+              key: password
 EOF
 ```
 
-### Verify Secret Creation
+### Verify Secret Sync
 ```bash
-# Check if VaultSync was created
-kubectl get vaultsyncs
+# Check if deployment has vault-sync annotations
+kubectl get deployment test-app -o yaml | grep "vault-sync.io"
 
-# Check if secret was created
+# Check if secret exists
 kubectl get secret test-app-secret -o yaml
 
-# Check operator logs
+# Check operator logs for sync activity
 kubectl logs -n vault-sync-operator-system -l control-plane=controller-manager
+
+# Verify secret was synced to Vault (from your VM)
+vault kv get secret/data/test-app/test-app-secret
 ```
 
 ## Troubleshooting
@@ -194,14 +230,7 @@ kubectl get events -n vault-sync-operator-system --sort-by='.lastTimestamp'
 kubectl run vault-test --image=vault:1.15.2 --rm -it -- vault version
 ```
 
-## Configuration Notes
-
-### Important Files Fixed
-- Fixed `.gitignore` to include RBAC role
-- Fixed duplicate ClusterRoleBinding names in RBAC configuration
-- Updated kustomize configurations for compatibility
-
-### Security Considerations
+## Security Considerations
 - All resources use proper RBAC with minimal required permissions
 - The operator runs as non-root user
 - Metrics endpoint is protected with kube-rbac-proxy
@@ -214,4 +243,4 @@ If you encounter issues:
 3. Verify the operator deployment is running correctly
 4. Check for any resource conflicts or naming issues
 
-The deployment has been thoroughly validated and all known issues have been resolved.
+The operator is ready for production use on VM environments.

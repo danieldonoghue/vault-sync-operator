@@ -4,18 +4,40 @@ This guide covers all available deployment methods for the Vault Sync Operator.
 
 ## Deployment Options
 
-The Vault Sync Operator supports three deployment methods:
+The Vault Sync Operator supports four deployment methods:
 
 1. **Helm Chart** (Recommended) - Most flexible and production-ready
 2. **Kustomize** - Good for GitOps workflows
 3. **Manual kubectl** - Simple direct deployment
+4. **Source-based** - Build and deploy from source code
 
 ## Prerequisites
 
 - Kubernetes cluster (v1.19+)
 - kubectl configured
-- HashiCorp Vault installed and configured
-- Vault Kubernetes authentication enabled
+- HashiCorp Vault installed and running
+- Vault CLI installed and accessible
+
+## Vault Setup
+
+Before deploying the operator, configure Vault for Kubernetes authentication:
+
+```bash
+# Set your Vault address and token
+export VAULT_ADDR="http://your-vault-server:8200"
+export VAULT_TOKEN="your-vault-token"
+
+# Run the setup script to configure Vault
+./scripts/setup-vault.sh
+```
+
+This script will:
+- Enable Kubernetes authentication backend
+- Create the necessary policies
+- Configure the authentication role
+- Set up proper permissions for the operator
+
+For detailed Vault configuration options, see the [Vault Setup Guide](VAULT-SETUP-GUIDE.md).
 
 ## Method 1: Helm Chart (Recommended)
 
@@ -172,6 +194,78 @@ For detailed Vault address configuration, see [VAULT-ADDRESS-CONFIGURATION.md](V
 kubectl delete -f deploy/manual/ --recursive
 ```
 
+## Method 4: Source-based Deployment
+
+This method is ideal for contributors, development environments, or when you need to build from the latest source code.
+
+### Prerequisites
+
+- Go 1.22+ installed
+- Docker installed
+- kubectl configured
+- Git repository cloned
+
+### Local Development
+
+Build and run the operator locally on your development machine:
+
+```bash
+# Build the operator binary
+make build
+
+# Run locally (requires kubeconfig configured)
+# This runs the operator outside the cluster but manages cluster resources
+make run
+```
+
+### Container Deployment from Source
+
+Build a custom container image and deploy to Kubernetes:
+
+```bash
+# Build container image (uses default tag: vault-sync-operator:latest)
+make docker-build
+
+# Optional: Build with custom tag
+IMG=my-registry/vault-sync-operator:v1.0.0 make docker-build
+
+# Deploy to Kubernetes using kustomize
+make deploy
+
+# Optional: Deploy with custom image
+IMG=my-registry/vault-sync-operator:v1.0.0 make deploy
+```
+
+### Configuration
+
+When using source-based deployment, the default configuration assumes:
+- Vault address: `http://vault:8200` (in-cluster)
+- Namespace: `vault-sync-operator-system`
+- Image: `vault-sync-operator:latest`
+
+To customize these settings, you can:
+
+1. **Set environment variables before deploying:**
+```bash
+export IMG=my-registry/vault-sync-operator:custom-tag
+make deploy
+```
+
+2. **Edit kustomization files directly:**
+```bash
+# Edit the manager configuration
+vim config/manager/manager.yaml
+
+# Edit the default kustomization
+vim config/default/kustomization.yaml
+```
+
+### Uninstallation
+
+```bash
+make undeploy
+```
+
 ## Vault Configuration
 
 ### Prerequisites
@@ -325,23 +419,58 @@ kubectl get all -n vault-sync-operator-system
 kubectl logs -n vault-sync-operator-system -l control-plane=controller-manager -f
 ```
 
-### Test with VaultSync Resource
+### Test with Annotation-based Deployment
 
 ```yaml
-apiVersion: vault.example.com/v1alpha1
-kind: VaultSync
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: test-sync
+  name: test-app
   namespace: default
+  annotations:
+    vault-sync.io/path: "secret/data/test-app"
 spec:
-  vaultPath: "secret/test-app"
-  secretName: "test-app-secret"
-  refreshInterval: "30s"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test-app
+  template:
+    metadata:
+      labels:
+        app: test-app
+    spec:
+      containers:
+      - name: app
+        image: nginx:latest
+        env:
+        - name: SECRET_VALUE
+          valueFrom:
+            secretKeyRef:
+              name: app-secret
+              key: password
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: app-secret
+  namespace: default
+type: Opaque
+data:
+  password: dGVzdC1wYXNzd29yZA==  # base64: test-password
 ```
 
 ```bash
-kubectl apply -f test-vaultsync.yaml
-kubectl get secret test-app-secret -o yaml
+# Apply the test deployment
+kubectl apply -f test-deployment.yaml
+
+# Check if deployment has vault-sync annotations
+kubectl get deployment test-app -o yaml | grep "vault-sync.io"
+
+# Check operator logs for sync activity
+kubectl logs -n vault-sync-operator-system -l control-plane=controller-manager
+
+# Verify secret was synced to Vault
+vault kv get secret/data/test-app/app-secret
 ```
 
 ## Troubleshooting

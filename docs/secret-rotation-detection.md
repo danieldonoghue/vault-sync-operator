@@ -18,7 +18,6 @@ Controls how the operator handles secret rotation detection:
 
 - **`enabled`** (default): Normal rotation detection is active
 - **`disabled`**: Rotation detection is disabled, operator will always sync
-- **Future**: `<frequency>` (e.g., `5m`, `1h`) for periodic sync regardless of changes (planned feature)
 
 #### `vault-sync.io/secret-versions`
 
