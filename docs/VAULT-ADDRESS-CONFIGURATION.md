@@ -76,7 +76,7 @@ patches:
 
 ### Method 3: Manual kubectl
 
-For manual deployments, edit `deploy/manual/04-deployment.yaml`:
+For manual deployments, edit `deploy/manual/03-deployment.yaml`:
 
 ```yaml
 env:

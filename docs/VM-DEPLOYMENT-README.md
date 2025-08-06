@@ -69,7 +69,7 @@ kubectl apply -k config/default/
 
 **⚠️ Important**: You must update the VAULT_ADDR for your VM setup.
 
-Edit `deploy/manual/04-deployment.yaml` to update Vault settings:
+Edit `deploy/manual/03-deployment.yaml` to update Vault settings:
 
 ```yaml
 env:

@@ -114,7 +114,7 @@ jobs:
       with:
         path: |
           ~/.cache/go-build
-        key: ${{ runner.os }}-go-build-${{ env.GO_VERSION }}-${{ github.sha }}
+        key: ${{ runner.os }}-go-build-${{ env.GO_VERSION }}-${{ hashFiles('**/*.go', 'go.mod', 'go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-build-${{ env.GO_VERSION }}-
           ${{ runner.os }}-go-build-
@@ -226,8 +226,8 @@ jobs:
           VERSION=${{ needs.create-release.outputs.version }}
           COMMIT=${{ github.sha }}
           DATE=${{ github.event.head_commit.timestamp }}
-        cache-from: type=gha,scope=${{ matrix.platform }}
-        cache-to: type=gha,mode=max,scope=${{ matrix.platform }}
+        cache-from: type=gha,scope=shared
+        cache-to: type=gha,mode=min,scope=shared,max-size=1g
 
     - name: Export digest
       run: |
@@ -354,7 +354,7 @@ jobs:
         VERSION=${{ needs.create-release.outputs.version }}
         # Update the image tag in all manifest files
         sed -i "s|image: ghcr.io/${{ github.repository }}:.*|image: ghcr.io/${{ github.repository }}:${VERSION}|g" config/manager/manager.yaml
-        sed -i "s|image: ghcr.io/${{ github.repository }}:.*|image: ghcr.io/${{ github.repository }}:${VERSION}|g" deploy/manual/04-deployment.yaml
+        sed -i "s|image: ghcr.io/${{ github.repository }}:.*|image: ghcr.io/${{ github.repository }}:${VERSION}|g" deploy/manual/03-deployment.yaml
         
         # Update the appVersion in Helm chart
         sed -i "s|appVersion: \".*\"|appVersion: \"${VERSION}\"|g" charts/vault-sync-operator/Chart.yaml

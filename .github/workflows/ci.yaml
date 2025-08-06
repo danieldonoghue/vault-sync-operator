@@ -3,9 +3,14 @@ name: CI
 on:
   push:
     branches: [ master, develop ]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
   pull_request:
     branches: [ master ]
-
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
 permissions:
   contents: read
   security-events: write
@@ -43,7 +48,7 @@ jobs:
       with:
         path: |
           ~/.cache/go-build
-        key: ${{ runner.os }}-go-build-${{ env.GO_VERSION }}-${{ github.sha }}
+        key: ${{ runner.os }}-go-build-${{ env.GO_VERSION }}-${{ hashFiles('**/*.go', 'go.mod', 'go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-build-${{ env.GO_VERSION }}-
           ${{ runner.os }}-go-build-
@@ -165,6 +170,27 @@ jobs:
         tags: vault-sync-operator:test
         # Temporarily building only AMD64 for faster CI
         # Full multi-platform: linux/amd64,linux/arm64
-        # Cache temporarily disabled due to GitHub infrastructure issues
-        # cache-from: type=gha
-        # cache-to: type=gha,mode=max
+        cache-from: type=gha,scope=ci-shared
+        cache-to: type=gha,mode=min,scope=ci-shared,max-size=500m
+
+  cleanup-pr-caches:
+    name: Cleanup PR Caches
+    if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+    - name: Clean PR caches
+      run: |
+        echo "Cleaning caches for merged PR #${{ github.event.number }} from branch ${{ github.head_ref }}"
+        
+        # Clean caches that contain the PR branch name or PR number
+        gh api repos/${{ github.repository }}/actions/caches --paginate | \
+        jq -r --arg branch "${{ github.head_ref }}" --arg pr "${{ github.event.number }}" \
+        '.actions_caches[] | select(.key | contains($branch) or contains("pr-" + $pr) or contains("refs-pull-" + $pr)) | .id' | \
+        while read cache_id; do
+          echo "Deleting cache ID: $cache_id"
+          gh api repos/${{ github.repository }}/actions/caches/$cache_id -X DELETE || echo "Failed to delete cache $cache_id"
+        done
+        
+        echo "PR cache cleanup completed"
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
