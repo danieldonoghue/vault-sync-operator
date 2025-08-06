@@ -51,7 +51,14 @@ For detailed Vault configuration options, see the [Vault Setup Guide](VAULT-SETU
 helm install vault-sync-operator ./charts/vault-sync-operator \
   --namespace vault-sync-operator-system \
   --create-namespace
+
+# For pre-releases, specify the exact version:
+helm install vault-sync-operator ./charts/vault-sync-operator \
+  --namespace vault-sync-operator-system \
+  --create-namespace \
+  --set image.tag={version}
 ```
+where `{version)` would be something like: `v0.0.1-alpha.7`
 
 ### Configuration
 
@@ -101,7 +108,14 @@ helm install vault-sync-operator ./charts/vault-sync-operator \
 helm upgrade vault-sync-operator ./charts/vault-sync-operator \
   --namespace vault-sync-operator-system \
   --values values.yaml
+  
+# For pre-releases, specify the exact version:
+helm upgrade vault-sync-operator ./charts/vault-sync-operator \
+  --namespace vault-sync-operator-system \
+  --create-namespace \
+  --set image.tag={version}
 ```
+where `{version)` would be something like: `v0.0.1-alpha.7`
 
 ### Uninstallation
 
