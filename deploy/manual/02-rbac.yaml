@@ -22,6 +22,14 @@ rules:
 - apiGroups:
   - apps
   resources:
+  - deployments/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - apps
+  resources:
   - deployments/finalizers
   verbs:
   - update
