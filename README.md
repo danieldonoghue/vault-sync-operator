@@ -19,7 +19,7 @@ The Vault Sync Operator watches for Kubernetes Deployments with specific annotat
 
 ### Prerequisites
 
-- Kubernetes cluster (v1.20+)
+- Kubernetes cluster (v1.19+)
 - HashiCorp Vault server with Kubernetes auth backend configured
 - `kubectl` configured to access your cluster
 
@@ -223,6 +223,7 @@ The operator uses the following annotations to control secret synchronization:
 | `vault-sync.io/secrets` | ❌ | Custom secret configuration (JSON) | See examples below |
 | `vault-sync.io/preserve-on-delete` | ❌ | Prevent deletion from Vault on deployment deletion | `"true"` |
 | `vault-sync.io/reconcile` | ❌ | Periodic reconciliation interval (off by default) | `"5m"`, `"1h"`, `"off"` |
+| `vault-sync.io/rotation-check` | ❌ | Enable/disable secret rotation detection | `"enabled"`, `"disabled"` |
 
 ### Synchronization Modes
 
@@ -294,6 +295,26 @@ metadata:
     vault-sync.io/path: "secret/data/my-app"
     vault-sync.io/preserve-on-delete: "true"
     # Secret will NOT be deleted from Vault when deployment is deleted
+```
+
+#### Periodic Reconciliation
+```yaml
+metadata:
+  annotations:
+    vault-sync.io/path: "secret/data/my-app"
+    vault-sync.io/reconcile: "2m"
+    # Automatically restore secrets if they are deleted from Vault
+    # Supports: "30s", "2m", "1h", "24h", or "off" (default)
+```
+
+#### Secret Rotation Detection
+```yaml
+metadata:
+  annotations:
+    vault-sync.io/path: "secret/data/my-app"
+    vault-sync.io/rotation-check: "enabled"  # Default behavior
+    # "enabled": Only sync when secrets change (efficient)
+    # "disabled": Sync on every reconciliation (useful for debugging)
 ```
 
 ## Multi-Cluster Support

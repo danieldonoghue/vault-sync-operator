@@ -5,25 +5,17 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - ""
-  resources:
-  - secrets
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
   - apps
   resources:
   - deployments
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
+  - update
+  - patch
+  - create
+  - delete
 - apiGroups:
   - apps
   resources:
@@ -38,3 +30,33 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch

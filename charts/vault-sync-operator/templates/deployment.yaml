@@ -95,12 +95,16 @@ spec:
             port: health
           initialDelaySeconds: 15
           periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
         readinessProbe:
           httpGet:
             path: /readyz
             port: health
           initialDelaySeconds: 5
           periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
         resources:
           {{- toYaml .Values.controllerManager.resources | nindent 12 }}
         {{- with .Values.volumeMounts }}

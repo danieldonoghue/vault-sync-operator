@@ -62,8 +62,6 @@ vault-sync-operator/
 │   └── vault-sync-operator/   # Operator Helm chart
 ├── deploy/
 │   └── manual/                # Manual deployment manifests
-├── releases/                  # Release artifacts
-│   └── v*/                    # Versioned releases
 ├── Dockerfile                 # Container image build
 ├── Makefile                   # Build and deployment targets
 ├── go.mod                     # Go module dependencies

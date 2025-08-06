@@ -48,13 +48,8 @@ spec:
       # - name: ghcr-secret
       securityContext:
         runAsNonRoot: true
-        # TODO(user): For common cases that do not require escalating privileges
-        # it is recommended to ensure that all your Pods/Containers are restrictive.
-        # More info: https://kubernetes.io/docs/concepts/security/pod-security-standards/#restricted
-        # Please uncomment the following code if your project does NOT have to work on old Kubernetes
-        # versions < 1.19 or on vendors versions which do NOT support this field by default (i.e. Openshift < 4.11 ).
-        # seccompProfile:
-        #   type: RuntimeDefault
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - command:
         - /manager
@@ -92,12 +87,16 @@ spec:
             port: 8081
           initialDelaySeconds: 15
           periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
         readinessProbe:
           httpGet:
             path: /readyz
             port: 8081
           initialDelaySeconds: 5
           periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
         # TODO(user): Configure the resources accordingly based on the project requirements.
         # More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
         resources:
@@ -107,5 +106,5 @@ spec:
           requests:
             cpu: 10m
             memory: 64Mi
-      serviceAccountName: controller-manager
+      serviceAccountName: vault-sync-operator-controller-manager
       terminationGracePeriodSeconds: 10

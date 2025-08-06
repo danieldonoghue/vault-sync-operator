@@ -73,8 +73,8 @@ The CI/CD pipeline consists of several workflows that handle testing, building, 
 
 #### 4. Update Manifests
 - Updates Kubernetes manifests with new image version
-- Creates versioned release manifests
-- Packages manifests as release artifacts
+- Creates versioned release manifests and packages them as GitHub release assets
+- Packages Helm charts as GitHub release assets
 
 ## Security Workflow
 

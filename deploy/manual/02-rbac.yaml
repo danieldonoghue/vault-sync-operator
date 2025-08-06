@@ -38,31 +38,23 @@ rules:
   - patch
   - delete
 - apiGroups:
-  - vault.example.com
+  - coordination.k8s.io
   resources:
-  - vaultsyncs
+  - leases
   verbs:
-  - create
-  - delete
   - get
   - list
+  - create
+  - update
   - patch
-  - update
-  - watch
+  - delete
 - apiGroups:
-  - vault.example.com
+  - ""
   resources:
-  - vaultsyncs/finalizers
+  - events
   verbs:
-  - update
-- apiGroups:
-  - vault.example.com
-  resources:
-  - vaultsyncs/status
-  verbs:
-  - get
+  - create
   - patch
-  - update
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole

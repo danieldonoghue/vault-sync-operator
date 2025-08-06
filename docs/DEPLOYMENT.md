@@ -58,7 +58,7 @@ helm install vault-sync-operator ./charts/vault-sync-operator \
   --create-namespace \
   --set image.tag={version}
 ```
-where `{version)` would be something like: `v0.0.1-alpha.7`
+where `{version}` would be something like: `v0.0.1-alpha.7`
 
 ### Configuration
 
@@ -81,7 +81,7 @@ vault:
 
 image:
   repository: ghcr.io/danieldonoghue/vault-sync-operator
-  tag: "v0.0.1-alpha.3"
+  tag: ""  # Uses appVersion from Chart.yaml by default
 
 controllerManager:
   resources:
@@ -115,7 +115,7 @@ helm upgrade vault-sync-operator ./charts/vault-sync-operator \
   --create-namespace \
   --set image.tag={version}
 ```
-where `{version)` would be something like: `v0.0.1-alpha.7`
+where `{version}` would be something like: `v0.0.1-alpha.7`
 
 ### Uninstallation
 

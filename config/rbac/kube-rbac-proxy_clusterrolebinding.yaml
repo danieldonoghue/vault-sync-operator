@@ -15,5 +15,5 @@ roleRef:
   name: metrics-reader
 subjects:
 - kind: ServiceAccount
-  name: controller-manager
+  name: vault-sync-operator-controller-manager
   namespace: system
