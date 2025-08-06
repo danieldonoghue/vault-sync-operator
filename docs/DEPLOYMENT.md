@@ -141,9 +141,8 @@ kubectl delete -k config/default/
 kubectl apply -f deploy/manual/00-namespace.yaml
 kubectl apply -f deploy/manual/01-serviceaccount.yaml
 kubectl apply -f deploy/manual/02-rbac.yaml
-kubectl apply -f deploy/manual/03-crd.yaml
-kubectl apply -f deploy/manual/04-deployment.yaml
-kubectl apply -f deploy/manual/05-service.yaml
+kubectl apply -f deploy/manual/03-deployment.yaml
+kubectl apply -f deploy/manual/04-service.yaml
 
 # Or apply all at once
 kubectl apply -f deploy/manual/ --recursive
@@ -369,8 +368,6 @@ kubectl get secret test-app-secret -o yaml
 kubectl get pods -n vault-sync-operator-system
 kubectl describe pod -n vault-sync-operator-system -l control-plane=controller-manager
 
-# Check CRD installation
-kubectl get crd vaultsyncs.vault.example.com
 
 # Check RBAC
 kubectl auth can-i --list --as=system:serviceaccount:vault-sync-operator-system:vault-sync-operator-controller-manager

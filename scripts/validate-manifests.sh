@@ -115,7 +115,7 @@ echo ""
 echo "📦 Validating kustomize configurations..."
 
 # Validate each kustomize directory
-for dir in config/crd config/rbac config/manager config/default; do
+for dir in config/rbac config/manager config/default; do
     if [ -d "$dir" ]; then
         echo ""
         echo "--- Validating $dir ---"
@@ -151,8 +151,8 @@ done
 
 echo ""
 echo "📋 Summary of manifest structure:"
-echo "CRD files:"
-find config/crd -name "*.yaml" -type f | sort
+echo "Manager files:"
+find config/manager -name "*.yaml" -type f | sort
 
 echo ""
 echo "RBAC files:"
@@ -171,7 +171,6 @@ echo "🎉 Validation complete!"
 echo "Next steps for deployment on your VM:"
 echo "1. Copy the entire config/ directory to your VM"
 echo "2. Run: kubectl apply -f config/default/namespace.yaml"
-echo "3. Run: kubectl apply -k config/crd/"
-echo "4. Run: kubectl apply -k config/rbac/"
-echo "5. Run: kubectl apply -k config/manager/"
-echo "6. Update deployment with your VM's Vault address"
+echo "3. Run: kubectl apply -k config/rbac/"
+echo "4. Run: kubectl apply -k config/manager/"
+echo "5. Update deployment with your VM's Vault address"

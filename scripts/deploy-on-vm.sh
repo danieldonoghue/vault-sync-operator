@@ -37,14 +37,8 @@ kubectl apply -k config/default/
 echo "✅ All resources applied"
 echo ""
 
-# Step 2: Wait for CRDs to be ready
-echo "📋 Step 2: Waiting for CRDs to be ready..."
-wait_for_resource "crd" "vaultsyncs.vault.example.com"
-echo "✅ CRDs ready"
-echo ""
-
-# Step 3: Wait for deployment to be ready
-echo "⏳ Step 3: Waiting for deployment to be ready..."
+# Step 2: Wait for deployment to be ready
+echo "⏳ Step 2: Waiting for deployment to be ready..."
 wait_for_resource "deployment" "vault-sync-operator-controller-manager" "$NAMESPACE"
 echo "✅ Deployment ready"
 echo ""

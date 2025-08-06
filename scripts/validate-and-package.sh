@@ -32,9 +32,6 @@ check_duplicates() {
 }
 
 # Generate manifests for each component
-echo "📦 Generating CRD manifests..."
-kustomize build config/crd/ > "$TEMP_DIR/crd.yaml"
-check_duplicates "$TEMP_DIR/crd.yaml"
 
 echo "📦 Generating RBAC manifests..."
 kustomize build config/rbac/ > "$TEMP_DIR/rbac.yaml"
@@ -66,7 +63,6 @@ mkdir -p "$PACKAGE_DIR"
 cp "$TEMP_DIR"/*.yaml "$PACKAGE_DIR/"
 
 # Copy original config directories for reference
-cp -r config/crd "$PACKAGE_DIR/"
 cp -r config/rbac "$PACKAGE_DIR/"
 cp -r config/manager "$PACKAGE_DIR/"
 cp -r config/default "$PACKAGE_DIR/"
@@ -86,12 +82,7 @@ cat > "$PACKAGE_DIR/DEPLOY_ON_VM.md" << 'EOF'
 kubectl apply -f default/namespace.yaml
 ```
 
-### 2. Apply CRDs
-```bash
-kubectl apply -f crd.yaml
-```
-
-### 3. Apply RBAC
+### 2. Apply RBAC
 ```bash
 kubectl apply -f rbac.yaml
 ```

@@ -359,12 +359,7 @@ make test
 
 ### Local Development
 
-1. Install CRDs:
-```bash
-make install
-```
-
-2. Run the operator locally:
+1. Run the operator locally:
 ```bash
 make run
 ```

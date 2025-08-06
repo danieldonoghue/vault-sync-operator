@@ -372,7 +372,6 @@ jobs:
         kind: Kustomization
         
         resources:
-        - crd/
         - rbac/
         - manager/
         

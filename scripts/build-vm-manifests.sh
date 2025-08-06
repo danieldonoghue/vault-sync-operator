@@ -13,9 +13,6 @@ rm -rf "$MANIFEST_DIR"
 mkdir -p "$MANIFEST_DIR"
 
 # Build each kustomization separately
-echo "Building CRD manifests..."
-kubectl kustomize config/crd/ > "$MANIFEST_DIR/crd.yaml"
-
 echo "Building RBAC manifests..."
 kubectl kustomize config/rbac/ > "$MANIFEST_DIR/rbac.yaml"
 
@@ -27,7 +24,6 @@ kubectl kustomize config/default/ > "$MANIFEST_DIR/all-in-one.yaml"
 
 # Also copy individual directories for granular deployment
 echo "Copying individual manifest directories..."
-cp -r config/crd "$MANIFEST_DIR/"
 cp -r config/rbac "$MANIFEST_DIR/"
 cp -r config/manager "$MANIFEST_DIR/"
 cp -r config/default "$MANIFEST_DIR/"
@@ -57,13 +53,10 @@ cat > "$MANIFEST_DIR/DEPLOY.md" << 'EOF'
 # 1. Create namespace
 kubectl apply -f namespace.yaml
 
-# 2. Apply CRDs
-kubectl apply -f crd.yaml
-
-# 3. Apply RBAC
+# 2. Apply RBAC
 kubectl apply -f rbac.yaml
 
-# 4. Apply manager
+# 3. Apply manager
 kubectl apply -f manager.yaml
 ```
 

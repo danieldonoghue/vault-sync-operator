@@ -121,9 +121,9 @@ kubectl get all -n vault-sync-operator-system
 kubectl logs -n vault-sync-operator-system -l control-plane=controller-manager -f
 ```
 
-### Verify CRDs
+### Verify Deployment
 ```bash
-kubectl get crd | grep vault
+kubectl get pods -n vault-sync-operator-system
 ```
 
 ## Testing
@@ -197,9 +197,8 @@ kubectl run vault-test --image=vault:1.15.2 --rm -it -- vault version
 ## Configuration Notes
 
 ### Important Files Fixed
-- Fixed `.gitignore` to include CRD bases and RBAC role
+- Fixed `.gitignore` to include RBAC role
 - Fixed duplicate ClusterRoleBinding names in RBAC configuration
-- Created missing CRD file
 - Updated kustomize configurations for compatibility
 
 ### Security Considerations
@@ -212,7 +211,7 @@ kubectl run vault-test --image=vault:1.15.2 --rm -it -- vault version
 If you encounter issues:
 1. Check the operator logs first
 2. Verify Vault connectivity and authentication
-3. Ensure all CRDs are properly installed
+3. Verify the operator deployment is running correctly
 4. Check for any resource conflicts or naming issues
 
 The deployment has been thoroughly validated and all known issues have been resolved.

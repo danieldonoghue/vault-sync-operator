@@ -23,14 +23,11 @@ kubectl apply -f 01-serviceaccount.yaml
 # 3. Create RBAC resources
 kubectl apply -f 02-rbac.yaml
 
-# 4. Create Custom Resource Definition
-kubectl apply -f 03-crd.yaml
+# 4. Create deployment
+kubectl apply -f 03-deployment.yaml
 
-# 5. Create deployment
-kubectl apply -f 04-deployment.yaml
-
-# 6. Create service
-kubectl apply -f 05-service.yaml
+# 5. Create service
+kubectl apply -f 04-service.yaml
 ```
 
 Or apply all at once:
@@ -94,9 +91,8 @@ To remove the operator:
 
 ```bash
 # Remove in reverse order
-kubectl delete -f 05-service.yaml
-kubectl delete -f 04-deployment.yaml
-kubectl delete -f 03-crd.yaml
+kubectl delete -f 04-service.yaml
+kubectl delete -f 03-deployment.yaml
 kubectl delete -f 02-rbac.yaml
 kubectl delete -f 01-serviceaccount.yaml
 kubectl delete -f 00-namespace.yaml
@@ -110,26 +106,34 @@ kubectl delete -f . --recursive
 
 ## Testing
 
-Create a test VaultSync resource:
+This operator uses deployment annotations. Create a test deployment with vault-sync annotations:
 
 ```yaml
-apiVersion: vault.example.com/v1alpha1
-kind: VaultSync
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: test-sync
-  namespace: default
+  name: test-app
+  annotations:
+    vault-sync.io/path: "secret/data/test-app"
 spec:
-  vaultPath: "secret/test-app"
-  secretName: "test-app-secret"
-  refreshInterval: "30s"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test-app
+  template:
+    metadata:
+      labels:
+        app: test-app
+    spec:
+      containers:
+      - name: app
+        image: nginx:latest
+        env:
+        - name: SECRET_VALUE
+          valueFrom:
+            secretKeyRef:
+              name: app-secret
+              key: password
 ```
 
-```bash
-kubectl apply -f test-vaultsync.yaml
-```
-
-Check if the secret was created:
-
-```bash
-kubectl get secret test-app-secret -o yaml
-```
+The operator will automatically discover and sync the `app-secret` to Vault at `secret/data/test-app/app-secret`.

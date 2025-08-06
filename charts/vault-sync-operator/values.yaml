@@ -115,10 +115,6 @@ affinity: {}
 # Termination grace period
 terminationGracePeriodSeconds: 10
 
-# Custom Resource Definition
-crd:
-  # Specifies whether CRDs should be created
-  create: true
 
 # Namespace configuration
 namespace:
