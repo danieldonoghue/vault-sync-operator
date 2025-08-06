@@ -21,8 +21,9 @@ spec:
       labels:
         control-plane: controller-manager
     spec:
-      imagePullSecrets:
-      - name: ghcr-secret
+      # imagePullSecrets not needed for public images
+      # imagePullSecrets:
+      # - name: ghcr-secret
       securityContext:
         runAsNonRoot: true
       containers:

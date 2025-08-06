@@ -9,13 +9,14 @@ image:
   pullPolicy: IfNotPresent
   tag: ""  # Uses appVersion from Chart.yaml if empty
 
-imagePullSecrets:
-  - name: ghcr-secret
-    create: false  # Set to true and provide credentials for private registry
-    registry: ghcr.io
-    username: ""  # Set via --set imagePullSecrets[0].username=your-username
-    password: ""  # Set via --set imagePullSecrets[0].password=your-pat
-    email: ""     # Set via --set imagePullSecrets[0].email=your-email
+imagePullSecrets: []
+  # Only needed for private registries. Example:
+  # - name: ghcr-secret
+  #   create: true
+  #   registry: ghcr.io
+  #   username: "your-username"
+  #   password: "your-pat"
+  #   email: "your-email"
 nameOverride: ""
 fullnameOverride: ""
 
