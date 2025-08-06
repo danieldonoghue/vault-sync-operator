@@ -35,7 +35,7 @@ spec:
         - --metrics-bind-address=:8080
         - --health-probe-bind-address=:8081
         - --zap-devel=false  # Production logging
-        image: vault-sync-operator:latest
+        image: ghcr.io/danieldonoghue/vault-sync-operator:latest
         name: manager
         env:
         # Vault configuration
@@ -100,7 +100,7 @@ spec:
         - containerPort: 8081
           name: healthz
           protocol: TCP
-      serviceAccountName: controller-manager
+      serviceAccountName: vault-sync-operator-controller-manager
       terminationGracePeriodSeconds: 30
       # Node affinity for better distribution
       affinity:

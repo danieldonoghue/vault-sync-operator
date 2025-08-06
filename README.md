@@ -91,7 +91,7 @@ EOF
 
 # Create a role
 vault write auth/kubernetes/role/vault-sync-operator \
-    bound_service_account_names=vault-sync-operator \
+    bound_service_account_names=vault-sync-operator-controller-manager \
     bound_service_account_namespaces=vault-sync-operator-system \
     policies=vault-sync-operator \
     ttl=24h

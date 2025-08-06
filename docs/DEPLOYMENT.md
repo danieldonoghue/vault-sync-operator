@@ -174,7 +174,7 @@ kubectl apply -f deploy/manual/ --recursive
 
 **⚠️ Important**: The default configuration assumes Vault is running inside the cluster. For external Vault servers, you must update the VAULT_ADDR.
 
-Edit `deploy/manual/04-deployment.yaml` to configure Vault settings:
+Edit `deploy/manual/03-deployment.yaml` to configure Vault settings:
 
 ```yaml
 env:

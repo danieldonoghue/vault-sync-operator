@@ -42,7 +42,7 @@ kubectl apply -f . --recursive
 
 **⚠️ Important**: The default configuration assumes Vault is running inside the cluster at `http://vault:8200`. For external Vault servers, you must update the VAULT_ADDR.
 
-Edit the `04-deployment.yaml` file to configure Vault settings:
+Edit the `03-deployment.yaml` file to configure Vault settings:
 
 ```yaml
 env:
