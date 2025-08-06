@@ -63,7 +63,7 @@ path "secret/data/*" {
 
 # Allow listing secrets
 path "secret/metadata/*" {
-  capabilities = ["list"]
+  capabilities = ["list", "read"]
 }
 
 # Allow token renewal

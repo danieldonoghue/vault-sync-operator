@@ -334,10 +334,20 @@ vault write auth/kubernetes/config \
 
 # 3. Create policy
 vault policy write vault-sync-operator - <<EOF
+# 3. Create policy
 path "secret/data/*" {
-  capabilities = ["read"]
+  capabilities = ["create", "update", "delete", "read"]
 }
+
 path "secret/metadata/*" {
+  capabilities = ["list", "read"]
+}
+
+path "auth/token/renew-self" {
+  capabilities = ["update"]
+}
+
+path "auth/token/lookup-self" {
   capabilities = ["read"]
 }
 EOF

@@ -127,25 +127,25 @@ vault write auth/kubernetes/config \
 ```bash
 # Create policy for vault-sync-operator
 vault policy write vault-sync-operator - <<EOF
-# Allow reading secrets from the KV v2 engine
+# For KV v2 engine (default)
 path "secret/data/*" {
-  capabilities = ["read"]
+  capabilities = ["create", "update", "delete", "read"]
 }
 
-# Allow reading secret metadata
+# Allow listing and reading secrets
 path "secret/metadata/*" {
+  capabilities = ["list", "read"]
+}
+
+# Allow token renewal
+path "auth/token/renew-self" {
+  capabilities = ["update"]
+}
+
+# Allow token lookup
+path "auth/token/lookup-self" {
   capabilities = ["read"]
 }
-
-# Allow listing secrets (optional, for discovery)
-path "secret/metadata" {
-  capabilities = ["list"]
-}
-
-# If using KV v1 engine instead, use these paths:
-# path "secret/*" {
-#   capabilities = ["read"]
-# }
 EOF
 ```
 
@@ -328,16 +328,16 @@ vault write auth/kubernetes/role/vault-sync-operator \
 vault policy write vault-sync-operator - <<EOF
 # Only allow access to specific application secrets
 path "secret/data/app1/*" {
-  capabilities = ["read"]
+  capabilities = ["create", "update", "delete", "read"]
 }
 path "secret/data/app2/*" {
-  capabilities = ["read"]
+  capabilities = ["create", "update", "delete", "read"]
 }
 path "secret/metadata/app1/*" {
-  capabilities = ["read"]
+  capabilities = ["list", "read"]
 }
 path "secret/metadata/app2/*" {
-  capabilities = ["read"]
+  capabilities = ["list", "read"]
 }
 EOF
 ```
@@ -399,10 +399,23 @@ vault write auth/kubernetes/config \
 
 # Create policy
 vault policy write vault-sync-operator - <<EOF
+# For KV v2 engine (default)
 path "secret/data/*" {
-  capabilities = ["read"]
+  capabilities = ["create", "update", "delete", "read"]
 }
+
+# Allow listing and reading secrets
 path "secret/metadata/*" {
+  capabilities = ["list", "read"]
+}
+
+# Allow token renewal
+path "auth/token/renew-self" {
+  capabilities = ["update"]
+}
+
+# Allow token lookup
+path "auth/token/lookup-self" {
   capabilities = ["read"]
 }
 EOF

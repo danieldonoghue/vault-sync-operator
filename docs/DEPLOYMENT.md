@@ -222,15 +222,26 @@ vault write auth/kubernetes/config \
 
 **Step 3: Create Policy**
 
-Create a policy that allows the operator to read secrets:
+Create a policy that allows the operator to create, read, update and delete secrets:
 
 ```bash
 # For KV v2 engine (default)
-vault policy write vault-sync-operator - <<EOF
 path "secret/data/*" {
-  capabilities = ["read"]
+  capabilities = ["create", "update", "delete", "read"]
 }
+
+# Allow listing and reading secrets
 path "secret/metadata/*" {
+  capabilities = ["list", "read"]
+}
+
+# Allow token renewal
+path "auth/token/renew-self" {
+  capabilities = ["update"]
+}
+
+# Allow token lookup
+path "auth/token/lookup-self" {
   capabilities = ["read"]
 }
 EOF
@@ -238,7 +249,7 @@ EOF
 # For KV v1 engine (if using legacy setup)
 vault policy write vault-sync-operator - <<EOF
 path "secret/*" {
-  capabilities = ["read"]
+  capabilities = ["create", "update", "delete", "read"]
 }
 EOF
 ```
