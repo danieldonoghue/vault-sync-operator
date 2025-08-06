@@ -214,7 +214,7 @@ This method is ideal for contributors, development environments, or when you nee
 
 ### Prerequisites
 
-- Go 1.22+ installed
+- Go 1.24+ installed
 - Docker installed
 - kubectl configured
 - Git repository cloned

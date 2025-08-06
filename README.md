@@ -360,7 +360,7 @@ The operator works with secret generators (Kustomize, Helm, etc.) as it:
 
 ### Prerequisites
 
-- Go 1.22+
+- Go 1.24+
 - Docker
 - kubectl
 - A Kubernetes cluster for testing
