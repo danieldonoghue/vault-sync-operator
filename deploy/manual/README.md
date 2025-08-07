@@ -20,6 +20,9 @@ kubectl apply -f 00-namespace.yaml
 # 2. Create service account
 kubectl apply -f 01-serviceaccount.yaml
 
+# 2a. Create service account token secret (required for Kubernetes 1.24+)
+kubectl apply -f 01a-serviceaccount-token.yaml
+
 # 3. Create RBAC resources
 kubectl apply -f 02-rbac.yaml
 
@@ -58,6 +61,10 @@ Common examples:
 - VM deployment: `http://192.168.1.100:8200`
 - External host: `http://vault.example.com:8200`
 - HTTPS: `https://vault.example.com:8200`
+
+### ServiceAccount Token Secret
+
+**⚠️ Important**: Starting with Kubernetes 1.24, ServiceAccount tokens are no longer automatically created as secrets. The `01a-serviceaccount-token.yaml` file creates the required token secret that Vault needs for authentication.
 
 ### Vault Role Configuration
 
