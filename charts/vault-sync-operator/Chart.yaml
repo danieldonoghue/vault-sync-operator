@@ -1,6 +1,6 @@
 apiVersion: v2
 name: vault-sync-operator
-description: A Helm chart for Vault Sync Operator - Kubernetes operator for syncing secrets from HashiCorp Vault
+description: A Helm chart for Vault Sync Operator - Kubernetes operator for syncing secrets to HashiCorp Vault
 type: application
 version: 0.1.0
 appVersion: latest
@@ -9,7 +9,7 @@ keywords:
   - secrets
   - kubernetes
   - operator
-home: https://github.com/danieldonoghue/vault-sync-operator
+home: https://danieldonoghue.github.io/vault-sync-operator/
 sources:
   - https://github.com/danieldonoghue/vault-sync-operator
 maintainers:
