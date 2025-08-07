@@ -48,10 +48,10 @@ jobs:
         else
           echo "Creating new orphan gh-pages branch..."
           git checkout --orphan gh-pages
+
+          # Remove all files from the branch (stages the deletions)
+          git rm -rf . 2>/dev/null || true
         fi
-        
-        # Remove all files from the branch (stages the deletions)
-        git rm -rf . 2>/dev/null || true
 
     - name: Download and package helm chart
       run: |
