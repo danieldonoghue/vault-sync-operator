@@ -71,3 +71,14 @@ rules:
   - subjectaccessreviews
   verbs:
   - create
+# Permissions for metrics endpoint access
+- apiGroups:
+  - metrics.k8s.io
+  resources:
+  - "*"
+  verbs:
+  - get
+- nonResourceURLs:
+  - /metrics
+  verbs:
+  - get
