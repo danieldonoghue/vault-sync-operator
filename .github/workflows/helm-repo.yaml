@@ -11,7 +11,7 @@ on:
         type: string
 
 env:
-  ARTIFACTHUB_REPO_ID: ""
+  ARTIFACTHUB_REPO_ID: "7590d88d-22ae-4303-a5b9-afbdeddd3f24"
 
 jobs:
   release:
