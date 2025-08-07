@@ -23,7 +23,7 @@ vault operator unseal <unseal-key-2>
 vault operator unseal <unseal-key-3>
 
 # Login with root token
-vault auth <root-token>
+vault login <root-token>
 ```
 
 ### 2. Enable KV Secrets Engine
@@ -39,19 +39,44 @@ vault secrets enable -version=2 kv
 vault secrets enable -path=secret -version=2 kv
 ```
 
-### 3. Create Test Secrets
+### 3. Verify KV Engine
 
 ```bash
-# Create some test secrets for the operator to sync
-vault kv put secret/test-app \
-    username=testuser \
-    password=testpass123 \
-    database_url=postgres://localhost:5432/testdb
+# Verify the KV engine is working
+vault kv list secret/
 
-vault kv put secret/prod-app \
-    api_key=abc123xyz \
-    db_host=prod-db.example.com \
-    db_password=supersecret
+# The operator will create secrets here when it syncs from Kubernetes
+# No need to create test secrets manually since sync direction is K8s → Vault
+```
+
+## Prerequisites
+
+Before configuring Vault's Kubernetes auth, ensure the vault-sync-operator is deployed:
+
+### 1. Deploy the Operator
+
+Choose one of the deployment methods:
+- **Helm Chart**: `helm install vault-sync-operator charts/vault-sync-operator/`
+- **Kustomize**: `kubectl apply -k config/default`
+- **Manual**: `kubectl apply -f deploy/manual/`
+
+All deployment methods now automatically create the required ServiceAccount token secret for Kubernetes 1.24+ compatibility.
+
+### 2. Verify Deployment
+
+```bash
+# Check that the operator is running
+kubectl get pods -n vault-sync-operator-system
+
+# Check that the ServiceAccount exists
+kubectl get serviceaccount vault-sync-operator-controller-manager -n vault-sync-operator-system
+
+# Check that the token secret was created automatically
+kubectl get secret -n vault-sync-operator-system | grep token
+
+# Verify the token is populated (secret name depends on deployment method)
+TOKEN_SECRET=$(kubectl get secret -n vault-sync-operator-system -o name | grep token)
+kubectl get $TOKEN_SECRET -n vault-sync-operator-system -o jsonpath='{.data.token}' | base64 -d | cut -c1-20
 ```
 
 ## Kubernetes Authentication Configuration
@@ -62,13 +87,13 @@ This method is most reliable for k3s and VM deployments:
 
 ```bash
 # Create a temporary pod with Vault CLI
-kubectl run vault-config --image=vault:1.15.2 --rm -it --restart=Never -- sh
+kubectl run vault-config --image=vault:1.13.3 --rm -it --restart=Never -- sh
 
 # Inside the pod, set Vault address
 export VAULT_ADDR=http://your-vault-server:8200
 
 # Authenticate with Vault
-vault auth <your-vault-token>
+vault login <your-vault-token>
 
 # Enable Kubernetes auth backend
 vault auth enable kubernetes
@@ -85,11 +110,12 @@ vault write auth/kubernetes/config \
 If you prefer to configure from outside the cluster:
 
 ```bash
-# Get cluster CA certificate
-kubectl get secret -n vault-sync-operator-system -o jsonpath='{.items[0].data.ca\.crt}' | base64 -d > ca.crt
+# Get cluster CA certificate from the ServiceAccount token secret
+TOKEN_SECRET_NAME=$(kubectl get secret -n vault-sync-operator-system -o name | grep token | head -1)
+kubectl get $TOKEN_SECRET_NAME -n vault-sync-operator-system -o jsonpath='{.data.ca\.crt}' | base64 -d > ca.crt
 
-# Get service account token
-SA_TOKEN=$(kubectl get secret -n vault-sync-operator-system -o go-template='{{range .items}}{{if eq .type "kubernetes.io/service-account-token"}}{{.data.token}}{{end}}{{end}}' | base64 -d)
+# Get service account token from the specific secret we created
+SA_TOKEN=$(kubectl get $TOKEN_SECRET_NAME -n vault-sync-operator-system -o jsonpath='{.data.token}' | base64 -d)
 
 # Get Kubernetes API server URL
 KUBE_HOST=$(kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.server}')
@@ -117,7 +143,7 @@ sudo cat /etc/rancher/k3s/k3s.yaml | grep certificate-authority-data | awk '{pri
 vault write auth/kubernetes/config \
     kubernetes_host="$KUBE_HOST" \
     kubernetes_ca_cert=@k3s-ca.crt \
-    token_reviewer_jwt="$(kubectl get secret -n vault-sync-operator-system -o go-template='{{range .items}}{{if eq .type "kubernetes.io/service-account-token"}}{{.data.token}}{{end}}{{end}}' | base64 -d)"
+    token_reviewer_jwt="$(kubectl get $(kubectl get secret -n vault-sync-operator-system -o name | grep token | head -1) -n vault-sync-operator-system -o jsonpath='{.data.token}' | base64 -d)"
 ```
 
 ## Policy Configuration
@@ -182,8 +208,9 @@ vault policy read vault-sync-operator
 ### 2. Test Authentication
 
 ```bash
-# Get service account token
-SA_TOKEN=$(kubectl get secret -n vault-sync-operator-system -o go-template='{{range .items}}{{if eq .type "kubernetes.io/service-account-token"}}{{.data.token}}{{end}}{{end}}' | base64 -d)
+# Get service account token from the specific secret we created
+TOKEN_SECRET_NAME=$(kubectl get secret -n vault-sync-operator-system -o name | grep token | head -1)
+SA_TOKEN=$(kubectl get $TOKEN_SECRET_NAME -n vault-sync-operator-system -o jsonpath='{.data.token}' | base64 -d)
 
 # Test login
 vault write auth/kubernetes/login role=vault-sync-operator jwt="$SA_TOKEN"
@@ -208,11 +235,12 @@ policies                                  ["default" "vault-sync-operator"]
 # Use the token from the previous step
 export VAULT_TOKEN=s.xxxxxxxxxxxxxxxxxxxxx
 
-# Test reading a secret
-vault kv get secret/test-app
-
-# Test listing secrets
+# Test that the operator can write to the secret path
+# (this will be empty initially since sync direction is K8s → Vault)
 vault kv list secret/
+
+# The operator will populate secrets here when Kubernetes deployments
+# with vault-sync annotations are created
 ```
 
 ## VM and k3s Specific Considerations
@@ -270,8 +298,8 @@ vault secrets list -detailed | grep secret/
 # Check service account exists
 kubectl get serviceaccount vault-sync-operator-controller-manager -n vault-sync-operator-system
 
-# Check if service account has tokens
-kubectl get secret -n vault-sync-operator-system | grep vault-sync-operator-controller-manager
+# Check if the specific token secret exists
+kubectl get secret -n vault-sync-operator-system | grep token
 
 # Verify role configuration
 vault read auth/kubernetes/role/vault-sync-operator
@@ -280,8 +308,9 @@ vault read auth/kubernetes/role/vault-sync-operator
 ### Issue 3: "invalid jwt" Error
 
 ```bash
-# Check token format
-SA_TOKEN=$(kubectl get secret -n vault-sync-operator-system -o go-template='{{range .items}}{{if eq .type "kubernetes.io/service-account-token"}}{{.data.token}}{{end}}{{end}}' | base64 -d)
+# Check token format from the specific secret
+TOKEN_SECRET_NAME=$(kubectl get secret -n vault-sync-operator-system -o name | grep token | head -1)
+SA_TOKEN=$(kubectl get $TOKEN_SECRET_NAME -n vault-sync-operator-system -o jsonpath='{.data.token}' | base64 -d)
 echo $SA_TOKEN | cut -c1-20
 
 # Verify token is valid JWT
@@ -380,15 +409,36 @@ OPERATOR_SA="vault-sync-operator-controller-manager"
 
 echo "Setting up Vault authentication for vault-sync-operator..."
 
+# Ensure the operator is deployed first (this creates the required ServiceAccount token secret)
+echo "Checking if operator is deployed..."
+if ! kubectl get deployment vault-sync-operator-controller-manager -n $OPERATOR_NAMESPACE >/dev/null 2>&1; then
+  echo "ERROR: vault-sync-operator is not deployed. Please deploy it first using one of:"
+  echo "  - Helm: helm install vault-sync-operator charts/vault-sync-operator/"
+  echo "  - Kustomize: kubectl apply -k config/default"
+  echo "  - Manual: kubectl apply -f deploy/manual/"
+  exit 1
+fi
+
+# Find the ServiceAccount token secret
+echo "Finding ServiceAccount token secret..."
+TOKEN_SECRET_NAME=$(kubectl get secret -n $OPERATOR_NAMESPACE -o name 2>/dev/null | grep token | head -1 | cut -d/ -f2)
+if [ -z "$TOKEN_SECRET_NAME" ]; then
+  echo "ERROR: ServiceAccount token secret not found. Check operator deployment."
+  exit 1
+fi
+echo "Found token secret: $TOKEN_SECRET_NAME"
+
 # Set Vault address and token
 export VAULT_ADDR=$VAULT_ADDR
 export VAULT_TOKEN=$VAULT_TOKEN
 
-# Enable Kubernetes auth
+# Enable Kubernetes auth backend
 vault auth enable kubernetes
 
 # Configure auth backend
-kubectl run vault-config --image=vault:1.15.2 --rm -it --restart=Never -- sh -c "
+# Note: This temporary pod uses its own built-in service account token for configuration,
+# which is different from the operator's token secret we created above
+kubectl run vault-config --image=vault:1.13.3 --rm -it --restart=Never -- sh -c "
 export VAULT_ADDR=$VAULT_ADDR
 export VAULT_TOKEN=$VAULT_TOKEN
 vault write auth/kubernetes/config \
@@ -429,7 +479,7 @@ vault write auth/kubernetes/role/vault-sync-operator \
 
 # Test authentication
 echo "Testing authentication..."
-SA_TOKEN=$(kubectl get secret -n $OPERATOR_NAMESPACE -o go-template='{{range .items}}{{if eq .type "kubernetes.io/service-account-token"}}{{.data.token}}{{end}}{{end}}' | base64 -d)
+SA_TOKEN=$(kubectl get secret $TOKEN_SECRET_NAME -n $OPERATOR_NAMESPACE -o jsonpath='{.data.token}' | base64 -d)
 vault write auth/kubernetes/login role=vault-sync-operator jwt="$SA_TOKEN"
 
 echo "Setup complete!"
