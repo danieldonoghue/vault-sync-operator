@@ -1,3 +1,10 @@
+annotations:
+  artifacthub.io/operator: "true"
+  artifacthub.io/license: Apache-2.0
+  artifacthub.io/prerelease: "true"
+  artifacthub.io/maintainers: |
+    - name: Daniel Donoghue
+      email: danieldonoghue@users.noreply.github.com
 apiVersion: v2
 name: vault-sync-operator
 description: A Helm chart for Vault Sync Operator - Kubernetes operator for syncing secrets to HashiCorp Vault
