@@ -52,6 +52,16 @@ jobs:
           git rm -rf . 2>/dev/null || true
         fi
 
+    - name: Create documentation structure
+      run: |
+        # Create docs directory
+        mkdir -p docs examples
+        
+        # Copy key documentation files from master branch
+        git checkout master -- README.md || echo "No README.md found"
+        git checkout master -- docs/ || echo "No docs/ directory found"
+        git checkout master -- examples/ || echo "No examples/ directory found"
+        
     - name: Download and package helm chart
       run: |
         if [ "${{ github.event_name }}" = "release" ]; then
@@ -75,6 +85,8 @@ jobs:
           # Extract the chart source
           tar -xzf helm-chart.tar.gz
           
+          cp README.md vault-sync-operator/
+
           # Package the chart (versions should already be correct)
           helm package vault-sync-operator
           
@@ -96,16 +108,6 @@ jobs:
           exit 1
         fi
 
-    - name: Create documentation structure
-      run: |
-        # Create docs directory
-        mkdir -p docs examples
-        
-        # Copy key documentation files from master branch
-        git checkout master -- README.md || echo "No README.md found"
-        git checkout master -- docs/ || echo "No docs/ directory found"
-        git checkout master -- examples/ || echo "No examples/ directory found"
-        
     - name: Process release manifests
       run: |
         # If we're processing a release, also get release-specific manifests
@@ -131,7 +133,6 @@ jobs:
           # Cleanup
           rm -f manifests.tar.gz
         fi
-
 
     - name: Generate HTML index
       run: |        
@@ -306,7 +307,7 @@ jobs:
                 <ul>
                     <li><a href="https://github.com/${{ github.repository }}#readme">📖 Complete README</a> - Comprehensive guide with all features</li>
                     <li><a href="docs/">📁 Documentation Directory</a> - Detailed setup and configuration guides</li>
-                    <li><a href="examples/">💡 Example Configurations</a> - Ready-to-use YAML examples</li>
+                    <li><a href="https://github.com/${{ github.repository }}/blob/master/examples/">💡 Example Configurations</a> - Ready-to-use YAML examples</li>
                     <li><a href="https://github.com/${{ github.repository }}">🔗 Source Code</a> - GitHub repository</li>
                 </ul>
                 
@@ -328,8 +329,6 @@ jobs:
                 <h2>🆘 Support</h2>
                 <p>
                     <strong>Issues:</strong> <a href="https://github.com/${{ github.repository }}/issues">GitHub Issues</a><br>
-                    <strong>Discussions:</strong> <a href="https://github.com/${{ github.repository }}/discussions">GitHub Discussions</a><br>
-                    <strong>Documentation:</strong> <a href="README.md">Complete README with troubleshooting guide</a>
                 </p>
 
                 <hr style="margin-top: 40px; border: none; border-top: 1px solid #bdc3c7;">
