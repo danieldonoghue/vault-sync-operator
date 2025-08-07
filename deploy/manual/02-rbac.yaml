@@ -63,17 +63,7 @@ rules:
   verbs:
   - create
   - patch
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: vault-sync-operator-auth-proxy-role
-  labels:
-    app.kubernetes.io/name: vault-sync-operator
-    app.kubernetes.io/instance: vault-sync-operator
-    app.kubernetes.io/component: kube-rbac-proxy
-    app.kubernetes.io/managed-by: kubectl
-rules:
+# Permissions needed for built-in metrics authentication
 - apiGroups:
   - authentication.k8s.io
   resources:
@@ -88,21 +78,6 @@ rules:
   - create
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: vault-sync-operator-metrics-reader
-  labels:
-    app.kubernetes.io/name: vault-sync-operator
-    app.kubernetes.io/instance: vault-sync-operator
-    app.kubernetes.io/component: kube-rbac-proxy
-    app.kubernetes.io/managed-by: kubectl
-rules:
-- nonResourceURLs:
-  - "/metrics"
-  verbs:
-  - get
----
-apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: vault-sync-operator-manager-rolebinding
@@ -115,42 +90,6 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: vault-sync-operator-manager-role
-subjects:
-- kind: ServiceAccount
-  name: vault-sync-operator-controller-manager
-  namespace: vault-sync-operator-system
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: vault-sync-operator-auth-proxy-rolebinding
-  labels:
-    app.kubernetes.io/name: vault-sync-operator
-    app.kubernetes.io/instance: vault-sync-operator
-    app.kubernetes.io/component: kube-rbac-proxy
-    app.kubernetes.io/managed-by: kubectl
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: vault-sync-operator-auth-proxy-role
-subjects:
-- kind: ServiceAccount
-  name: vault-sync-operator-controller-manager
-  namespace: vault-sync-operator-system
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: vault-sync-operator-metrics-reader-rolebinding
-  labels:
-    app.kubernetes.io/name: vault-sync-operator
-    app.kubernetes.io/instance: vault-sync-operator
-    app.kubernetes.io/component: kube-rbac-proxy
-    app.kubernetes.io/managed-by: kubectl
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: vault-sync-operator-metrics-reader
 subjects:
 - kind: ServiceAccount
   name: vault-sync-operator-controller-manager

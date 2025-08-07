@@ -31,24 +31,6 @@ spec:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
       containers:
-      {{- if .Values.kubeRbacProxy.enabled }}
-      - name: kube-rbac-proxy
-        image: "{{ .Values.kubeRbacProxy.image.repository }}:{{ .Values.kubeRbacProxy.image.tag }}"
-        imagePullPolicy: {{ .Values.image.pullPolicy }}
-        securityContext:
-          {{- toYaml .Values.securityContext | nindent 12 }}
-        args:
-        - "--secure-listen-address={{ .Values.kubeRbacProxy.secureListenAddress }}"
-        - "--upstream={{ .Values.kubeRbacProxy.upstreamAddress }}"
-        - "--logtostderr=true"
-        - "--v=0"
-        ports:
-        - containerPort: 8443
-          protocol: TCP
-          name: https
-        resources:
-          {{- toYaml .Values.kubeRbacProxy.resources | nindent 12 }}
-      {{- end }}
       - name: manager
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
@@ -56,10 +38,9 @@ spec:
           {{- toYaml .Values.securityContext | nindent 12 }}
         args:
         - "--health-probe-bind-address={{ .Values.controllerManager.healthProbe.bindAddress }}"
-        {{- if .Values.kubeRbacProxy.enabled }}
         - "--metrics-bind-address={{ .Values.controllerManager.metrics.bindAddress }}"
-        {{- else }}
-        - "--metrics-bind-address=0.0.0.0:8080"
+        {{- if not .Values.controllerManager.metrics.enableAuth }}
+        - "--enable-metrics-auth=false"
         {{- end }}
         {{- if .Values.controllerManager.leaderElect }}
         - "--leader-elect"
@@ -86,6 +67,9 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
         ports:
+        - containerPort: 8080
+          protocol: TCP
+          name: metrics
         - containerPort: 8081
           protocol: TCP
           name: health

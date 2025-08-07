@@ -7,14 +7,14 @@ metadata:
     control-plane: controller-manager
     app.kubernetes.io/name: vault-sync-operator
     app.kubernetes.io/instance: vault-sync-operator
-    app.kubernetes.io/component: kube-rbac-proxy
+    app.kubernetes.io/component: manager
     app.kubernetes.io/managed-by: kubectl
 spec:
   type: ClusterIP
   ports:
-  - port: 8443
-    targetPort: https
+  - port: 8080
+    targetPort: metrics
     protocol: TCP
-    name: https
+    name: metrics
   selector:
     control-plane: controller-manager

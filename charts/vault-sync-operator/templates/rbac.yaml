@@ -62,15 +62,7 @@ rules:
   verbs:
   - create
   - patch
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: {{ include "vault-sync-operator.authProxyRoleName" . }}
-  labels:
-    {{- include "vault-sync-operator.labels" . | nindent 4 }}
-    app.kubernetes.io/component: kube-rbac-proxy
-rules:
+# Permissions needed for built-in metrics authentication
 - apiGroups:
   - authentication.k8s.io
   resources:
@@ -85,19 +77,6 @@ rules:
   - create
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: {{ include "vault-sync-operator.kubeRbacProxyClusterRoleName" . }}
-  labels:
-    {{- include "vault-sync-operator.labels" . | nindent 4 }}
-    app.kubernetes.io/component: kube-rbac-proxy
-rules:
-- nonResourceURLs:
-  - "/metrics"
-  verbs:
-  - get
----
-apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: {{ include "vault-sync-operator.managerRoleName" . }}-binding
@@ -108,38 +87,6 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: {{ include "vault-sync-operator.managerRoleName" . }}
-subjects:
-- kind: ServiceAccount
-  name: {{ include "vault-sync-operator.serviceAccountName" . }}
-  namespace: {{ include "vault-sync-operator.namespace" . }}
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: {{ include "vault-sync-operator.authProxyRoleName" . }}-binding
-  labels:
-    {{- include "vault-sync-operator.labels" . | nindent 4 }}
-    app.kubernetes.io/component: kube-rbac-proxy
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: {{ include "vault-sync-operator.authProxyRoleName" . }}
-subjects:
-- kind: ServiceAccount
-  name: {{ include "vault-sync-operator.serviceAccountName" . }}
-  namespace: {{ include "vault-sync-operator.namespace" . }}
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: {{ include "vault-sync-operator.kubeRbacProxyClusterRoleName" . }}-binding
-  labels:
-    {{- include "vault-sync-operator.labels" . | nindent 4 }}
-    app.kubernetes.io/component: kube-rbac-proxy
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: {{ include "vault-sync-operator.kubeRbacProxyClusterRoleName" . }}
 subjects:
 - kind: ServiceAccount
   name: {{ include "vault-sync-operator.serviceAccountName" . }}

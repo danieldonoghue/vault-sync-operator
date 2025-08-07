@@ -14,6 +14,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 
 	"github.com/danieldonoghue/vault-sync-operator/internal/controller"
 	"github.com/danieldonoghue/vault-sync-operator/internal/goruntime"
@@ -48,12 +49,16 @@ func main() {
 	var vaultAuthPath string
 	var clusterName string
 	var showVersion bool
+	var enableMetricsAuth bool
 
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+	flag.BoolVar(&enableMetricsAuth, "enable-metrics-auth", true,
+		"Enable authentication and authorization for metrics endpoint. "+
+			"Set to false to disable authentication (not recommended for production).")
 	flag.StringVar(&vaultAddr, "vault-addr", "http://vault:8200", "Vault server address")
 	flag.StringVar(&vaultRole, "vault-role", "vault-sync-operator", "Vault Kubernetes auth role")
 	flag.StringVar(&vaultAuthPath, "vault-auth-path", "kubernetes", "Vault Kubernetes auth path")
@@ -84,11 +89,20 @@ func main() {
 	goruntime.LogRuntimeConfiguration(setupLog)
 	goruntime.ValidateRuntimeConfiguration(setupLog)
 
+	// Configure metrics options based on authentication setting
+	metricsOptions := metricsserver.Options{
+		BindAddress: metricsAddr,
+	}
+	if enableMetricsAuth {
+		setupLog.Info("metrics authentication enabled")
+		metricsOptions.FilterProvider = filters.WithAuthenticationAndAuthorization
+	} else {
+		setupLog.Info("metrics authentication disabled - metrics endpoint will be accessible without authentication")
+	}
+
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme: scheme,
-		Metrics: metricsserver.Options{
-			BindAddress: metricsAddr,
-		},
+		Scheme:                 scheme,
+		Metrics:                metricsOptions,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "vault-sync-operator.io",

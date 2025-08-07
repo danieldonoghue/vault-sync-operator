@@ -101,16 +101,3 @@ Create the name of the manager role
 {{- printf "%s-manager-role" (include "vault-sync-operator.fullname" .) }}
 {{- end }}
 
-{{/*
-Create the name of the auth proxy role
-*/}}
-{{- define "vault-sync-operator.authProxyRoleName" -}}
-{{- printf "%s-auth-proxy-role" (include "vault-sync-operator.fullname" .) }}
-{{- end }}
-
-{{/*
-Create the name of the kube rbac proxy cluster role
-*/}}
-{{- define "vault-sync-operator.kubeRbacProxyClusterRoleName" -}}
-{{- printf "%s-kube-rbac-proxy" (include "vault-sync-operator.fullname" .) }}
-{{- end }}

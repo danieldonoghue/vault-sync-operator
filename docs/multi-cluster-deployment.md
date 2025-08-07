@@ -252,7 +252,7 @@ vault kv list clusters/cluster-a/secret/data/
 vault kv list clusters/cluster-b/secret/data/
 
 # Check metrics from each cluster
-kubectl port-forward -n vault-sync-operator-system svc/vault-sync-operator-controller-manager-metrics-service 8080:8443
+kubectl port-forward -n vault-sync-operator-system svc/vault-sync-operator-controller-manager-metrics-service 8080:8080
 curl http://localhost:8080/metrics | grep vault_sync_operator
 ```
 

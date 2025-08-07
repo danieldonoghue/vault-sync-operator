@@ -517,7 +517,7 @@ kubectl logs -n vault-sync-operator-system deployment/vault-sync-operator-contro
 2. **Monitor metrics** (if Prometheus is available):
 ```bash
 # Check sync attempts
-kubectl port-forward -n vault-sync-operator-system svc/vault-sync-operator-controller-manager-metrics-service 8080:8443
+kubectl port-forward -n vault-sync-operator-system svc/vault-sync-operator-controller-manager-metrics-service 8080:8080
 curl http://localhost:8080/metrics | grep vault_sync_operator
 ```
 
@@ -531,6 +531,63 @@ kubectl get deployment <deployment-name> -o yaml | grep -A 10 annotations
 kubectl apply -f examples/troubleshooting-example.yaml
 # Check logs for expected error messages
 kubectl logs -n vault-sync-operator-system deployment/vault-sync-operator-controller-manager | grep troubleshooting-example
+```
+
+### Metrics Authentication
+
+The operator serves authenticated metrics on port 8080 using Controller-Runtime's built-in authentication and authorization. Authentication can be disabled if needed.
+
+**Configuration:**
+
+*Command line flag:*
+```bash
+# Enable authentication (default)
+--enable-metrics-auth=true
+
+# Disable authentication (not recommended for production)
+--enable-metrics-auth=false
+```
+
+*Helm chart:*
+```yaml
+controllerManager:
+  metrics:
+    enableAuth: true  # Enable authentication (default)
+    # enableAuth: false  # Disable authentication (not recommended for production)
+```
+
+**How it works:**
+- Metrics requests must include a valid Kubernetes bearer token
+- The operator validates tokens using the Kubernetes TokenReview API
+- Authorization is checked using SubjectAccessReview API
+- Only authenticated users with proper RBAC permissions can access metrics
+
+**For Prometheus scraping:**
+```yaml
+# Example ServiceMonitor for Prometheus Operator
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: vault-sync-operator-metrics
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: vault-sync-operator
+  endpoints:
+  - port: metrics
+    path: /metrics
+    scheme: http
+    bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+```
+
+**For manual access:**
+```bash
+# Get a service account token
+TOKEN=$(kubectl create token default -n vault-sync-operator-system)
+
+# Access metrics with authentication
+kubectl port-forward -n vault-sync-operator-system svc/vault-sync-operator-controller-manager-metrics-service 8080:8080
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8080/metrics
 ```
 
 ### Health Check Endpoints
