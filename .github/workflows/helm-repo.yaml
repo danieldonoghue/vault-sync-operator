@@ -132,6 +132,7 @@ jobs:
           rm -f manifests.tar.gz
         fi
 
+
     - name: Generate HTML index
       run: |        
         # Create index.html for better navigation
@@ -179,6 +180,18 @@ jobs:
                     <strong>🚀 Quick Start:</strong> Get up and running in minutes with automatic secret synchronization to Vault!
                 </div>
 
+                <h2>✨ Key Features</h2>
+                <ul>
+                    <li><strong>Automatic Secret Synchronization</strong>: Sync Kubernetes secrets to Vault based on deployment annotations</li>
+                    <li><strong>Kubernetes Authentication</strong>: Uses Vault's Kubernetes auth backend for secure authentication</li>
+                    <li><strong>Auto-Discovery Mode</strong>: Automatically discovers secrets referenced in deployment pod templates</li>
+                    <li><strong>Custom Configuration</strong>: Selective secret keys with optional prefixing</li>
+                    <li><strong>Multi-Cluster Support</strong>: Per-cluster deployment with organized Vault paths</li>
+                    <li><strong>Monitoring & Observability</strong>: Comprehensive Prometheus metrics and health checks</li>
+                    <li><strong>Advanced Features</strong>: Periodic reconciliation, cleanup on deletion, secret rotation detection</li>
+                    <li><strong>Container Optimized</strong>: Automatic Go runtime configuration for Kubernetes environments</li>
+                </ul>
+
                 <div class="install-section" id="installation">
                     <h3>📥 Installation</h3>
                     <p>Add the Helm repository and install the operator:</p>
@@ -194,17 +207,21 @@ jobs:
                 </div>
 
                 <div class="install-section">
-                    <h3>⚙️ Required Configuration</h3>
-                    <p>You will need to configure your Vault server address:</p>
+                    <h3>⚙️ Configuration Options</h3>
+                    <p><strong>Required Configuration:</strong></p>
                     <ul>
-                        <li><code>vault.address</code> - Your Vault server address (e.g., "http://vault.example.com:8200"; defaults to http://vault:8200)</li>
+                        <li><code>vault.address</code> - Your Vault server address (e.g., "http://vault.example.com:8200")</li>
                     </ul>
                     
                     <p><strong>Optional Configuration:</strong></p>
                     <ul>
-                        <li><code>vault.role</code> - Vault Kubernetes auth role (defaults to vault-sync-operator)</li>
-                        <li><code>vault.authPath</code> - Vault auth path (defaults to kubernetes)</li>
-                        <li><code>image.tag</code> - Override the operator version if needed</li>
+                        <li><code>vault.role</code> - Vault Kubernetes auth role (default: vault-sync-operator)</li>
+                        <li><code>vault.authPath</code> - Vault auth path (default: kubernetes)</li>
+                        <li><code>controllerManager.metrics.enableAuth</code> - Enable metrics authentication (default: true)</li>
+                        <li><code>controllerManager.leaderElection</code> - Enable leader election (default: false)</li>
+                        <li><code>image.tag</code> - Override the operator version</li>
+                        <li><code>resources</code> - Container resource requests and limits</li>
+                        <li><code>clusterName</code> - Optional cluster name for multi-cluster deployments</li>
                     </ul>
                 </div>
 
@@ -220,11 +237,17 @@ jobs:
 
                 <div class="install-section" id="examples">
                     <h3>📝 Usage Examples</h3>
-                    <p>Annotate your deployments to sync secrets to Vault:</p>
-                    <pre><code>apiVersion: apps/v1
-        kind: Deployment
-        metadata:
-          name: my-app
+                    
+                    <h4>🔄 Auto-Discovery Mode (Recommended)</h4>
+                    <p>Automatically discovers all secrets referenced in your deployment:</p>
+                    <pre><code>metadata:
+          annotations:
+            vault-sync.io/path: "secret/data/my-app"
+            # All secrets referenced in pod template will be synced</code></pre>
+                    
+                    <h4>⚙️ Custom Configuration Mode</h4>
+                    <p>Specify exact secrets and keys to sync:</p>
+                    <pre><code>metadata:
           annotations:
             vault-sync.io/path: "secret/data/my-app"
             vault-sync.io/secrets: |
@@ -234,18 +257,70 @@ jobs:
                   "keys": ["username", "password"],
                   "prefix": "app_"
                 }
-              ]
-        spec:
-          # ... rest of deployment spec</code></pre>
+              ]</code></pre>
+                    
+                    <h4>🚀 Advanced Features</h4>
+                    <pre><code>metadata:
+          annotations:
+            vault-sync.io/path: "secret/data/my-app"
+            vault-sync.io/preserve-on-delete: "true"  # Don't delete from Vault
+            vault-sync.io/reconcile: "5m"            # Check every 5 minutes
+            vault-sync.io/rotation-check: "enabled"  # Detect secret changes</code></pre>
+                </div>
+
+                <div class="install-section">
+                    <h3>📊 Monitoring & Observability</h3>
+                    <p>The operator provides comprehensive monitoring capabilities:</p>
+                    <ul>
+                        <li><strong>Prometheus Metrics</strong>: Sync operations, errors, authentication attempts</li>
+                        <li><strong>Health Checks</strong>: <code>/healthz</code> and <code>/readyz</code> endpoints</li>
+                        <li><strong>Structured Logging</strong>: Detailed error messages with context</li>
+                        <li><strong>Metrics Authentication</strong>: Secure metrics endpoint access</li>
+                    </ul>
+                    
+                    <p><strong>Access metrics (with authentication):</strong></p>
+                    <pre><code># Get service account token
+        TOKEN=$(kubectl create token vault-sync-operator-controller-manager -n vault-sync-operator-system)
+
+        # Access metrics
+        kubectl port-forward -n vault-sync-operator-system svc/vault-sync-operator-controller-manager-metrics-service 8080:8080
+        curl -H "Authorization: Bearer $TOKEN" http://localhost:8080/metrics</code></pre>
+                </div>
+
+                <div class="install-section">
+                    <h3>🔧 Troubleshooting</h3>
+                    <p>Common debugging commands:</p>
+                    <pre><code># Check operator logs
+        kubectl logs -n vault-sync-operator-system deployment/vault-sync-operator-controller-manager
+
+        # Verify deployment annotations
+        kubectl get deployment &lt;name&gt; -o yaml | grep -A 10 annotations
+
+        # Check health endpoints
+        kubectl port-forward -n vault-sync-operator-system deployment/vault-sync-operator-controller-manager 8081:8081
+        curl http://localhost:8081/healthz
+        curl http://localhost:8081/readyz</code></pre>
                 </div>
 
                 <h2>📚 Documentation</h2>
                 <ul>
-                    <li><a href="README.md">📖 Complete README</a></li>
-                    <li><a href="docs/">📁 Documentation Directory</a></li>
-                    <li><a href="examples/">💡 Example Configurations</a></li>
-                    <li><a href="https://github.com/${{ github.repository }}">🔗 Source Code</a></li>
+                    <li><a href="https://github.com/${{ github.repository }}#readme">📖 Complete README</a> - Comprehensive guide with all features</li>
+                    <li><a href="docs/">📁 Documentation Directory</a> - Detailed setup and configuration guides</li>
+                    <li><a href="examples/">💡 Example Configurations</a> - Ready-to-use YAML examples</li>
+                    <li><a href="https://github.com/${{ github.repository }}">🔗 Source Code</a> - GitHub repository</li>
                 </ul>
+                
+                <div class="install-section">
+                    <h3>📋 Quick Reference</h3>
+                    <p><strong>Essential Links:</strong></p>
+                    <ul>
+                        <li><a href="https://github.com/${{ github.repository }}/blob/master/docs/VAULT-SETUP-GUIDE.md">🏗️ Vault Setup Guide</a></li>
+                        <li><a href="https://github.com/${{ github.repository }}/blob/master/docs/DEPLOYMENT.md">🚀 Deployment Guide</a></li>
+                        <li><a href="https://github.com/${{ github.repository }}/blob/master/docs/multi-cluster-deployment.md">🌐 Multi-Cluster Setup</a></li>
+                        <li><a href="https://github.com/${{ github.repository }}/blob/master/examples/basic-example.yaml">📄 Basic Example</a></li>
+                        <li><a href="https://github.com/${{ github.repository }}/blob/master/examples/auto-discovery-example.yaml">🔍 Auto-Discovery Example</a></li>
+                    </ul>
+                </div>
 
                 <h2>📊 Available Charts</h2>
                 <p>Check the <a href="index.yaml">index.yaml</a> for all available chart versions.</p>
@@ -253,7 +328,8 @@ jobs:
                 <h2>🆘 Support</h2>
                 <p>
                     <strong>Issues:</strong> <a href="https://github.com/${{ github.repository }}/issues">GitHub Issues</a><br>
-                    <strong>Discussions:</strong> <a href="https://github.com/${{ github.repository }}/discussions">GitHub Discussions</a>
+                    <strong>Discussions:</strong> <a href="https://github.com/${{ github.repository }}/discussions">GitHub Discussions</a><br>
+                    <strong>Documentation:</strong> <a href="README.md">Complete README with troubleshooting guide</a>
                 </p>
 
                 <hr style="margin-top: 40px; border: none; border-top: 1px solid #bdc3c7;">
