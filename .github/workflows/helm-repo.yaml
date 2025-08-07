@@ -10,6 +10,9 @@ on:
         required: true
         type: string
 
+env:
+  ARTIFACTHUB_REPO_ID: ""
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -19,7 +22,7 @@ jobs:
       id-token: write
 
     steps:
-    - name: Checkout main branch
+    - name: Checkout master branch
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
@@ -27,8 +30,8 @@ jobs:
 
     - name: Configure Git
       run: |
-        git config --local user.name "$GITHUB_ACTOR"
-        git config --local user.email "$GITHUB_ACTOR@users.noreply.github.com"
+        git config --local user.name "${{ github.actor }}"
+        git config --local user.email "${{ github.actor }}@users.noreply.github.com"
 
     - name: Install Helm
       uses: azure/setup-helm@v3
@@ -45,10 +48,9 @@ jobs:
         else
           echo "Creating new orphan gh-pages branch..."
           git checkout --orphan gh-pages
+          # Remove all files from the branch (stages the deletions)
+          git rm -rf . 2>/dev/null || true
         fi
-        
-        # Remove all files from the branch (stages the deletions)
-        git rm -rf . 2>/dev/null || true
 
     - name: Download and package helm chart
       run: |
@@ -96,21 +98,13 @@ jobs:
         # Create docs directory
         mkdir -p docs examples
         
-        # Copy key documentation files from main branch
-        git checkout main -- README.md || echo "No README.md found"
-        git checkout main -- docs/ || echo "No docs/ directory found"
-        git checkout main -- examples/ || echo "No examples/ directory found"
-        
-    - name: Create documentation structure
-      run: |
-        # Create docs directory
-        mkdir -p docs examples
-        
         # Copy key documentation files from master branch
         git checkout master -- README.md || echo "No README.md found"
         git checkout master -- docs/ || echo "No docs/ directory found"
         git checkout master -- examples/ || echo "No examples/ directory found"
         
+    - name: Process release manifests
+      run: |
         # If we're processing a release, also get release-specific manifests
         if [ "${{ github.event_name }}" = "release" ]; then
           RELEASE_TAG="${{ github.event.release.tag_name }}"
@@ -131,7 +125,9 @@ jobs:
           tar -xzf manifests.tar.gz -C release-manifests/
           echo "✅ Downloaded release-specific manifests"
         fi
-        
+
+    - name: Generate HTML index
+      run: |        
         # Create index.html for better navigation
         cat > index.html << 'EOF'
         <!DOCTYPE html>
@@ -278,11 +274,11 @@ jobs:
         # Artifact Hub repository metadata file
         # https://github.com/artifacthub/hub/blob/master/docs/metadata/artifacthub-repo.yml
         
-        repositoryID: # Will be filled after adding to Artifact Hub
+        repositoryID: ${{ env.ARTIFACTHUB_REPO_ID }}
         
         owners:
           - name: ${{ github.repository_owner }}
-            email: # Add your email for verification
+            email: ${{ github.repository_owner }}@users.noreply.github.com
         
         ignore:
           - name: "docs"
@@ -294,7 +290,7 @@ jobs:
     - name: Commit and push to gh-pages
       run: |
         # Configure git to use the GitHub token for authentication
-        git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+        # git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
         
         # Add all files
         git add .
