@@ -78,6 +78,9 @@ jobs:
           # Package the chart (versions should already be correct)
           helm package vault-sync-operator
           
+          # cleanup
+          rm -Rf vault-sync-operator/ helm-chart.tar.gz
+
           echo "✅ Successfully packaged chart from release ${RELEASE_TAG}"
         else
           echo "❌ No helm archive found in release assets"
@@ -120,10 +123,13 @@ jobs:
         
         if [ "$MANIFEST_URL" != "null" ] && [ -n "$MANIFEST_URL" ]; then
           echo "Found release manifests: $MANIFEST_URL"
-          mkdir -p release-manifests
+          mkdir -p release-manifests/${RELEASE_TAG}
           wget "$MANIFEST_URL" -O manifests.tar.gz
-          tar -xzf manifests.tar.gz -C release-manifests/
+          tar -xzf manifests.tar.gz -C release-manifests/${RELEASE_TAG}
           echo "✅ Downloaded release-specific manifests"
+
+          # Cleanup
+          rm -f manifests.tar.gz
         fi
 
     - name: Generate HTML index
@@ -283,7 +289,6 @@ jobs:
         ignore:
           - name: "docs"
           - name: "examples"
-          - name: "*.md"
           - name: "*.html"
         EOF
 
