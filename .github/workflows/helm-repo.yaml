@@ -283,8 +283,8 @@ jobs:
         repositoryID: ${{ env.ARTIFACTHUB_REPO_ID }}
         
         owners:
-          - name: danieldonoghue
-            email: oneofsomany@hotmail.com
+          - name: ${{ github.repository_owner }}
+            email: ${{ secrets.ARTIFACTHUB_OWNER_EMAIL }}
         
         ignore:
           - name: "docs"
