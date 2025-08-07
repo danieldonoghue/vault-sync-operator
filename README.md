@@ -516,9 +516,10 @@ kubectl logs -n vault-sync-operator-system deployment/vault-sync-operator-contro
 
 2. **Monitor metrics** (if Prometheus is available):
 ```bash
-# Check sync attempts
+# Check sync attempts (with authentication)
+TOKEN=$(kubectl create token vault-sync-operator-controller-manager -n vault-sync-operator-system)
 kubectl port-forward -n vault-sync-operator-system svc/vault-sync-operator-controller-manager-metrics-service 8080:8080
-curl http://localhost:8080/metrics | grep vault_sync_operator
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8080/metrics | grep vault_sync_operator
 ```
 
 3. **Verify deployment annotations**:
@@ -582,8 +583,8 @@ spec:
 
 **For manual access:**
 ```bash
-# Get a service account token
-TOKEN=$(kubectl create token default -n vault-sync-operator-system)
+# Get a service account token (use the controller manager service account)
+TOKEN=$(kubectl create token vault-sync-operator-controller-manager -n vault-sync-operator-system)
 
 # Access metrics with authentication
 kubectl port-forward -n vault-sync-operator-system svc/vault-sync-operator-controller-manager-metrics-service 8080:8080

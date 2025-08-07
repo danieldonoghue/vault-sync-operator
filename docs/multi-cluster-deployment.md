@@ -251,9 +251,10 @@ kubectl logs -n vault-sync-operator-system deployment/vault-sync-operator-contro
 vault kv list clusters/cluster-a/secret/data/
 vault kv list clusters/cluster-b/secret/data/
 
-# Check metrics from each cluster
+# Check metrics from each cluster (with authentication)
+TOKEN=$(kubectl create token vault-sync-operator-controller-manager -n vault-sync-operator-system)
 kubectl port-forward -n vault-sync-operator-system svc/vault-sync-operator-controller-manager-metrics-service 8080:8080
-curl http://localhost:8080/metrics | grep vault_sync_operator
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8080/metrics | grep vault_sync_operator
 ```
 
 ## Best Practices
