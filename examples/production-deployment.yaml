@@ -1,0 +1,149 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vault-sync-operator-production
+  namespace: vault-sync-operator-system
+  labels:
+    control-plane: controller-manager
+    app.kubernetes.io/name: vault-sync-operator
+    app.kubernetes.io/instance: vault-sync-operator-production
+    app.kubernetes.io/component: manager
+spec:
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+  replicas: 2  # High availability with leader election
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
+      labels:
+        control-plane: controller-manager
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - command:
+        - /manager
+        args:
+        - --leader-elect
+        - --vault-addr=$(VAULT_ADDR)
+        - --vault-role=$(VAULT_ROLE)
+        - --vault-auth-path=$(VAULT_AUTH_PATH)
+        - --metrics-bind-address=:8080
+        - --health-probe-bind-address=:8081
+        - --zap-devel=false  # Production logging
+        image: ghcr.io/danieldonoghue/vault-sync-operator:latest
+        name: manager
+        env:
+        # Vault configuration
+        - name: VAULT_ADDR
+          value: "https://vault.example.com:8200"
+        - name: VAULT_ROLE
+          value: "vault-sync-operator"
+        - name: VAULT_AUTH_PATH
+          value: "kubernetes"
+        # Go runtime optimization for containers
+        - name: GOMEMLIMIT
+          valueFrom:
+            resourceFieldRef:
+              resource: limits.memory
+        - name: GOMAXPROCS
+          valueFrom:
+            resourceFieldRef:
+              resource: limits.cpu
+        # Additional Go runtime tuning
+        - name: GOGC
+          value: "100"  # Default GC target percentage
+        - name: GODEBUG
+          value: "madvdontneed=1"  # Better memory release to OS
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - "ALL"
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 65532
+        # Health checks
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        # Resource limits optimized for production workloads
+        resources:
+          limits:
+            cpu: 1000m     # GOMAXPROCS will be set to 1
+            memory: 512Mi  # GOMEMLIMIT will be set to 512Mi
+          requests:
+            cpu: 100m      # Conservative request for scheduling
+            memory: 128Mi  # Minimum memory needed
+        # Monitoring
+        ports:
+        - containerPort: 8080
+          name: metrics
+          protocol: TCP
+        - containerPort: 8081
+          name: healthz
+          protocol: TCP
+      serviceAccountName: vault-sync-operator-controller-manager
+      terminationGracePeriodSeconds: 30
+      # Node affinity for better distribution
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: control-plane
+                  operator: In
+                  values:
+                  - controller-manager
+              topologyKey: kubernetes.io/hostname
+
+---
+# ServiceMonitor for Prometheus scraping
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: vault-sync-operator
+  namespace: vault-sync-operator-system
+  labels:
+    control-plane: controller-manager
+spec:
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+    scheme: http
+
+---
+# PodDisruptionBudget for high availability
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: vault-sync-operator-pdb
+  namespace: vault-sync-operator-system
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      control-plane: controller-manager

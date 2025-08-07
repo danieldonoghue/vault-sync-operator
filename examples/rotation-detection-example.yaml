@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rotation-detection-example
+  namespace: default
+  annotations:
+    # Enable secret rotation detection (default behavior)
+    vault-sync.io/path: "secret/data/my-app"
+    vault-sync.io/rotation-check: "enabled"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rotation-example
+  template:
+    metadata:
+      labels:
+        app: rotation-example
+    spec:
+      containers:
+      - name: app
+        image: nginx:latest
+        env:
+        # The operator will track the resourceVersion of these secrets
+        # and only sync to Vault when they change
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: password
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: api-secret
+              key: key
+        ports:
+        - containerPort: 80
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rotation-disabled-example
+  namespace: default
+  annotations:
+    # Disable rotation detection - sync on every reconciliation
+    vault-sync.io/path: "secret/data/my-app-always-sync"
+    vault-sync.io/rotation-check: "disabled"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rotation-disabled-example
+  template:
+    metadata:
+      labels:
+        app: rotation-disabled-example
+    spec:
+      containers:
+      - name: app
+        image: nginx:latest
+        env:
+        # These secrets will be synced to Vault on every reconciliation
+        # regardless of whether they've changed (useful for debugging)
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: password
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: api-secret
+              key: key
+        ports:
+        - containerPort: 80
+
+---
+# Example secrets that will be tracked
+apiVersion: v1
+kind: Secret
+metadata:
+  name: database-secret
+  namespace: default
+type: Opaque
+data:
+  password: bXktZGF0YWJhc2UtcGFzc3dvcmQ=  # my-database-password
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: api-secret
+  namespace: default
+type: Opaque
+data:
+  key: bXktYXBpLWtleQ==  # my-api-key

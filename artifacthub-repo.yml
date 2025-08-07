@@ -1,0 +1,14 @@
+# Artifact Hub repository metadata file
+# https://github.com/artifacthub/hub/blob/master/docs/metadata/artifacthub-repo.yml
+
+repositoryID: 
+
+owners:
+  - name: danieldonoghue
+    email: danieldonoghue@users.noreply.github.com
+
+ignore:
+  - name: "docs"
+  - name: "examples"
+  - name: "*.md"
+  - name: "*.html"

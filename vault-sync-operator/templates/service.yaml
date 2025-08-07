@@ -1,0 +1,19 @@
+{{- if .Values.kubeRbacProxy.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "vault-sync-operator.serviceName" . }}
+  namespace: {{ include "vault-sync-operator.namespace" . }}
+  labels:
+    {{- include "vault-sync-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: kube-rbac-proxy
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+  - port: {{ .Values.service.port }}
+    targetPort: {{ .Values.service.targetPort }}
+    protocol: TCP
+    name: {{ .Values.service.name }}
+  selector:
+    {{- include "vault-sync-operator.selectorLabels" . | nindent 4 }}
+{{- end }}

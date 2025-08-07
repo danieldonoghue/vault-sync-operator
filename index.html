@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Vault Sync Operator - Helm Repository</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 40px; line-height: 1.6; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
+        h2 { color: #34495e; margin-top: 30px; }
+        .install-section { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .install-section h3 { margin-top: 0; color: #2c3e50; }
+        code { background: #f1f2f6; padding: 2px 6px; border-radius: 4px; font-family: 'Monaco', 'Consolas', monospace; }
+        pre { background: #2d3748; color: #e2e8f0; padding: 20px; border-radius: 8px; overflow-x: auto; }
+        pre code { background: none; padding: 0; color: inherit; }
+        .highlight { background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 20px 0; border-radius: 4px; }
+        a { color: #3498db; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .nav { background: #34495e; color: white; padding: 15px; border-radius: 8px; margin-bottom: 30px; }
+        .nav a { color: #ecf0f1; margin-right: 20px; }
+        .badge { background: #27ae60; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.8em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="nav">
+            <strong>📦 Vault Sync Operator Helm Repository</strong> |
+            <a href="https://github.com/danieldonoghue/vault-sync-operator">GitHub</a> |
+            <a href="https://artifacthub.io/packages/search?repo=vault-sync-operator">Artifact Hub</a> |
+            <a href="#installation">Installation</a> |
+            <a href="#examples">Examples</a>
+        </div>
+        
+        <h1>🔐 Vault Sync Operator</h1>
+        <p><span class="badge">Kubernetes Operator</span> <span class="badge">HashiCorp Vault</span> <span class="badge">Secret Management</span></p>
+        
+        <p>A Kubernetes operator that automatically syncs secrets from Kubernetes to HashiCorp Vault using annotations on Deployments.</p>
+        
+        <div class="highlight">
+            <strong>🚀 Quick Start:</strong> Get up and running in minutes with automatic secret synchronization to Vault!
+        </div>
+
+        <div class="install-section" id="installation">
+            <h3>📥 Installation</h3>
+            <p>Add the Helm repository and install the operator:</p>
+            <pre><code># Add the repository
+helm repo add vault-sync-operator https://danieldonoghue.github.io/vault-sync-operator/
+helm repo update
+
+# Install the operator
+helm install vault-sync-operator vault-sync-operator/vault-sync-operator \\
+  --namespace vault-sync-operator-system \\
+  --create-namespace \\
+  --set vault.address="http://&lt;vault-ip-address&gt;:8200"</code></pre>
+        </div>
+
+        <div class="install-section">
+            <h3>⚙️ Required Configuration</h3>
+            <p>You will need to configure your Vault server address:</p>
+            <ul>
+                <li><code>vault.address</code> - Your Vault server address (e.g., "http://vault.example.com:8200")</li>
+            </ul>
+            
+            <p><strong>Optional Configuration:</strong></p>
+            <ul>
+                <li><code>vault.role</code> - Vault Kubernetes auth role (defaults to vault-sync-operator)</li>
+                <li><code>vault.authPath</code> - Vault auth path (defaults to kubernetes)</li>
+                <li><code>image.tag</code> - Override the operator version if needed</li>
+            </ul>
+        </div>
+
+        <div class="install-section">
+            <h3>🚀 Alternative Installation Methods</h3>
+            <p>The operator supports multiple deployment methods:</p>
+            <ul>
+                <li><strong>Helm Chart</strong> (recommended): Use this repository</li>
+                <li><strong>Kustomize</strong>: <code>kubectl apply -k config/default/</code></li>
+                <li><strong>Raw Manifests</strong>: Download from <a href="https://github.com/danieldonoghue/vault-sync-operator/releases">GitHub Releases</a></li>
+            </ul>
+        </div>
+
+        <div class="install-section" id="examples">
+            <h3>📝 Usage Examples</h3>
+            <p>Annotate your deployments to sync secrets to Vault:</p>
+            <pre><code>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+  annotations:
+    vault-sync.io/path: "secret/data/my-app"
+    vault-sync.io/secrets: |
+      [
+        {
+          "name": "my-app-secrets",
+          "keys": ["username", "password"],
+          "prefix": "app_"
+        }
+      ]
+spec:
+  # ... rest of deployment spec</code></pre>
+        </div>
+
+        <h2>📚 Documentation</h2>
+        <ul>
+            <li><a href="README.md">📖 Complete README</a></li>
+            <li><a href="docs/">📁 Documentation Directory</a></li>
+            <li><a href="examples/">💡 Example Configurations</a></li>
+            <li><a href="https://github.com/danieldonoghue/vault-sync-operator">🔗 Source Code</a></li>
+        </ul>
+
+        <h2>📊 Available Charts</h2>
+        <p>Check the <a href="index.yaml">index.yaml</a> for all available chart versions.</p>
+
+        <h2>🆘 Support</h2>
+        <p>
+            <strong>Issues:</strong> <a href="https://github.com/danieldonoghue/vault-sync-operator/issues">GitHub Issues</a><br>
+            <strong>Discussions:</strong> <a href="https://github.com/danieldonoghue/vault-sync-operator/discussions">GitHub Discussions</a>
+        </p>
+
+        <hr style="margin-top: 40px; border: none; border-top: 1px solid #bdc3c7;">
+        <p style="text-align: center; color: #7f8c8d; font-size: 0.9em;">
+            Generated automatically from <a href="https://github.com/danieldonoghue/vault-sync-operator">danieldonoghue/vault-sync-operator</a>
+        </p>
+    </div>
+</body>
+</html>
