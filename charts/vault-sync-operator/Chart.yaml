@@ -9,7 +9,7 @@ apiVersion: v2
 name: vault-sync-operator
 description: A Helm chart for Vault Sync Operator - Kubernetes operator for syncing secrets to HashiCorp Vault
 type: application
-version: 0.1.0
+version: 0.1.1
 appVersion: latest
 keywords:
   - vault
