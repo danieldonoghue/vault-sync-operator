@@ -19,7 +19,7 @@ jobs:
       id-token: write
 
     steps:
-    - name: Checkout main branch
+    - name: Checkout master branch
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
@@ -96,11 +96,11 @@ jobs:
         # Create docs directory
         mkdir -p docs examples
         
-        # Copy key documentation files from main branch
-        git checkout main -- README.md || echo "No README.md found"
-        git checkout main -- docs/ || echo "No docs/ directory found"
-        git checkout main -- examples/ || echo "No examples/ directory found"
-        
+        # Copy key documentation files from master branch
+        git checkout master -- README.md || echo "No README.md found"
+        git checkout master -- docs/ || echo "No docs/ directory found"
+        git checkout master -- examples/ || echo "No examples/ directory found"
+
         # If we're processing a release, also get release-specific manifests
         if [ "${{ github.event_name }}" = "release" ]; then
           RELEASE_TAG="${{ github.event.release.tag_name }}"
@@ -297,7 +297,7 @@ spec:
         if [ "${{ github.event_name }}" = "release" ]; then
           git commit -m "Release ${{ github.event.release.tag_name }}"
         else
-          git commit -m "Update helm repository"
+          git commit -m "Update helm repository (${{ github.event.inputs.target_release }})"
         fi
         
         # Push to gh-pages
