@@ -29,6 +29,14 @@ The Vault Sync Operator supports multiple deployment methods:
 
 1. **Helm Chart (Recommended)**:
 ```bash
+# from helm repo...
+helm repo add vault-sync-operator https://danieldonoghue.github.io/vault-sync-operator/
+helm repo update
+helm install vault-sync-operator vault-sync-operator/vault-sync-operator \
+  --namespace vault-sync-operator-system \
+  --create-namespace
+
+# or from the git repo...
 git clone https://github.com/danieldonoghue/vault-sync-operator.git
 cd vault-sync-operator
 helm install vault-sync-operator ./charts/vault-sync-operator \
@@ -72,10 +80,15 @@ Quick setup:
 vault auth enable kubernetes
 
 # Configure the auth backend
+KUBE_CA_CERT=$(kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}' | base64 --decode)
+KUBE_HOST=$(kubectl config view --raw --minify --flatten --output='jsonpath={.clusters[].cluster.server}')
+TOKEN_REVIEW_JWT=$(kubectl get secret vault-sync-operator-controller-manager-token -n vault-sync-operator-system -o go-template='{{ .data.token }}' | base64 --decode)
+
 vault write auth/kubernetes/config \
-    token_reviewer_jwt="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" \
-    kubernetes_host="https://$KUBERNETES_PORT_443_TCP_ADDR:443" \
-    kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    token_reviewer_jwt="$TOKEN_REVIEW_JWT" \
+    kubernetes_host="$KUBE_HOST" \
+    kubernetes_ca_cert="$KUBE_CA_CERT" \
+    disable_local_ca_jwt="true"
 
 # Create a policy for the operator
 vault policy write vault-sync-operator - <<EOF
@@ -86,6 +99,14 @@ path "secret/data/*" {
 # Allow listing and reading secrets
 path "secret/metadata/*" {
   capabilities = ["list", "read"]
+}
+
+path "auth/token/renew-self" {
+  capabilities = ["update"]
+}
+
+path "auth/token/lookup-self" {
+  capabilities = ["read"]
 }
 EOF
 

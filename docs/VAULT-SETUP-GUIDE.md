@@ -81,9 +81,9 @@ kubectl get $TOKEN_SECRET -n vault-sync-operator-system -o jsonpath='{.data.toke
 
 ## Kubernetes Authentication Configuration
 
-### Method 1: Configuration from Inside Cluster (Recommended)
+### Method 1: Configuration from Inside Cluster
 
-This method is most reliable for k3s and VM deployments:
+**Note**: This method can sometimes have permission issues. Method 2 below is more reliable.
 
 ```bash
 # Create a temporary pod with Vault CLI
@@ -98,52 +98,56 @@ vault login <your-vault-token>
 # Enable Kubernetes auth backend
 vault auth enable kubernetes
 
-# Configure the auth backend
+# Configure the auth backend (may require disable_local_ca_jwt="true" if you get permission errors)
 vault write auth/kubernetes/config \
     kubernetes_host="https://kubernetes.default.svc.cluster.local" \
     kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt \
-    token_reviewer_jwt="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)"
+    token_reviewer_jwt="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" \
+    disable_local_ca_jwt="true"
 ```
 
-### Method 2: Configuration from Outside Cluster
+### Method 2: Configuration from Outside Cluster (Recommended)
 
-If you prefer to configure from outside the cluster:
+This is the most reliable method for external Vault configuration:
 
 ```bash
-# Get cluster CA certificate from the ServiceAccount token secret
-TOKEN_SECRET_NAME=$(kubectl get secret -n vault-sync-operator-system -o name | grep token | head -1)
-kubectl get $TOKEN_SECRET_NAME -n vault-sync-operator-system -o jsonpath='{.data.ca\.crt}' | base64 -d > ca.crt
-
-# Get service account token from the specific secret we created
-SA_TOKEN=$(kubectl get $TOKEN_SECRET_NAME -n vault-sync-operator-system -o jsonpath='{.data.token}' | base64 -d)
+# Get cluster CA certificate from kubectl config
+KUBE_CA_CERT=$(kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}' | base64 --decode)
 
 # Get Kubernetes API server URL
-KUBE_HOST=$(kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.server}')
+KUBE_HOST=$(kubectl config view --raw --minify --flatten --output='jsonpath={.clusters[].cluster.server}')
+
+# Get service account token (adjust secret name based on deployment method)
+TOKEN_REVIEW_JWT=$(kubectl get secret vault-sync-operator-controller-manager-token -n vault-sync-operator-system -o go-template='{{ .data.token }}' | base64 --decode)
 
 # Configure Vault
 vault write auth/kubernetes/config \
+    token_reviewer_jwt="$TOKEN_REVIEW_JWT" \
     kubernetes_host="$KUBE_HOST" \
-    kubernetes_ca_cert=@ca.crt \
-    token_reviewer_jwt="$SA_TOKEN"
+    kubernetes_ca_cert="$KUBE_CA_CERT" \
+    disable_local_ca_jwt="true"
 ```
 
-### Method 3: k3s Specific Configuration
+### Method 3: Alternative Method for k3s/Special Cases
 
-For k3s clusters, you might need to adjust the approach:
+For k3s or other special cluster configurations, use the same reliable method:
 
 ```bash
-# k3s typically uses a different service account setup
-# Get the k3s cluster's internal service address
-KUBE_HOST="https://kubernetes.default.svc.cluster.local"
+# Get cluster CA certificate from kubectl config (works for k3s too)
+KUBE_CA_CERT=$(kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}' | base64 --decode)
 
-# For k3s, you might need to get the CA from the k3s config
-sudo cat /etc/rancher/k3s/k3s.yaml | grep certificate-authority-data | awk '{print $2}' | base64 -d > k3s-ca.crt
+# Get Kubernetes API server URL (k3s typically uses port 6443)
+KUBE_HOST=$(kubectl config view --raw --minify --flatten --output='jsonpath={.clusters[].cluster.server}')
 
-# Configure Vault with k3s specifics
+# Get service account token
+TOKEN_REVIEW_JWT=$(kubectl get secret vault-sync-operator-controller-manager-token -n vault-sync-operator-system -o go-template='{{ .data.token }}' | base64 --decode)
+
+# Configure Vault
 vault write auth/kubernetes/config \
+    token_reviewer_jwt="$TOKEN_REVIEW_JWT" \
     kubernetes_host="$KUBE_HOST" \
-    kubernetes_ca_cert=@k3s-ca.crt \
-    token_reviewer_jwt="$(kubectl get $(kubectl get secret -n vault-sync-operator-system -o name | grep token | head -1) -n vault-sync-operator-system -o jsonpath='{.data.token}' | base64 -d)"
+    kubernetes_ca_cert="$KUBE_CA_CERT" \
+    disable_local_ca_jwt="true"
 ```
 
 ## Policy Configuration
@@ -208,9 +212,8 @@ vault policy read vault-sync-operator
 ### 2. Test Authentication
 
 ```bash
-# Get service account token from the specific secret we created
-TOKEN_SECRET_NAME=$(kubectl get secret -n vault-sync-operator-system -o name | grep token | head -1)
-SA_TOKEN=$(kubectl get $TOKEN_SECRET_NAME -n vault-sync-operator-system -o jsonpath='{.data.token}' | base64 -d)
+# Get service account token
+SA_TOKEN=$(kubectl get secret vault-sync-operator-controller-manager-token -n vault-sync-operator-system -o go-template='{{ .data.token }}' | base64 --decode)
 
 # Test login
 vault write auth/kubernetes/login role=vault-sync-operator jwt="$SA_TOKEN"
@@ -309,8 +312,7 @@ vault read auth/kubernetes/role/vault-sync-operator
 
 ```bash
 # Check token format from the specific secret
-TOKEN_SECRET_NAME=$(kubectl get secret -n vault-sync-operator-system -o name | grep token | head -1)
-SA_TOKEN=$(kubectl get $TOKEN_SECRET_NAME -n vault-sync-operator-system -o jsonpath='{.data.token}' | base64 -d)
+SA_TOKEN=$(kubectl get secret vault-sync-operator-controller-manager-token -n vault-sync-operator-system -o go-template='{{ .data.token }}' | base64 --decode)
 echo $SA_TOKEN | cut -c1-20
 
 # Verify token is valid JWT
@@ -435,17 +437,20 @@ export VAULT_TOKEN=$VAULT_TOKEN
 # Enable Kubernetes auth backend
 vault auth enable kubernetes
 
-# Configure auth backend
-# Note: This temporary pod uses its own built-in service account token for configuration,
-# which is different from the operator's token secret we created above
-kubectl run vault-config --image=vault:1.13.3 --rm -it --restart=Never -- sh -c "
-export VAULT_ADDR=$VAULT_ADDR
-export VAULT_TOKEN=$VAULT_TOKEN
+# Configure auth backend using the reliable external method
+echo "Configuring Kubernetes authentication..."
+
+# Get cluster information from kubectl config
+KUBE_CA_CERT=$(kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}' | base64 --decode)
+KUBE_HOST=$(kubectl config view --raw --minify --flatten --output='jsonpath={.clusters[].cluster.server}')
+TOKEN_REVIEW_JWT=$(kubectl get secret $TOKEN_SECRET_NAME -n $OPERATOR_NAMESPACE -o go-template='{{ .data.token }}' | base64 --decode)
+
+# Configure Vault
 vault write auth/kubernetes/config \
-    kubernetes_host='https://kubernetes.default.svc.cluster.local' \
-    kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt \
-    token_reviewer_jwt=\"\$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)\"
-"
+    token_reviewer_jwt="$TOKEN_REVIEW_JWT" \
+    kubernetes_host="$KUBE_HOST" \
+    kubernetes_ca_cert="$KUBE_CA_CERT" \
+    disable_local_ca_jwt="true"
 
 # Create policy
 vault policy write vault-sync-operator - <<EOF

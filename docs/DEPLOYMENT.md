@@ -303,28 +303,15 @@ vault auth enable kubernetes
 From within your Kubernetes cluster (recommended approach):
 
 ```bash
-# Create a temporary pod to configure Vault
-kubectl run vault-config --image=vault:1.15.2 --rm -it --restart=Never -- sh
+KUBE_CA_CERT=$(kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}' | base64 --decode)
+KUBE_HOST=$(kubectl config view --raw --minify --flatten --output='jsonpath={.clusters[].cluster.server}')
+TOKEN_REVIEW_JWT=$(kubectl get secret vault-sync-operator-controller-manager-token -n vault-sync-operator-system -o go-template='{{ .data.token }}' | base64 --decode)
 
-# Inside the pod, configure the auth backend
 vault write auth/kubernetes/config \
-    kubernetes_host="https://kubernetes.default.svc.cluster.local" \
-    kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt \
-    token_reviewer_jwt="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)"
-```
-
-Alternatively, from outside the cluster:
-
-```bash
-# Get cluster information
-KUBE_CA_CERT=$(kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}' | base64 -d)
-KUBE_HOST=$(kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.server}')
-
-# Configure using external access
-vault write auth/kubernetes/config \
+    token_reviewer_jwt="$TOKEN_REVIEW_JWT" \
     kubernetes_host="$KUBE_HOST" \
     kubernetes_ca_cert="$KUBE_CA_CERT" \
-    token_reviewer_jwt="$(kubectl get secret -n vault-sync-operator-system -o go-template='{{range .items}}{{if eq .type "kubernetes.io/service-account-token"}}{{.data.token}}{{end}}{{end}}' | base64 -d)"
+    disable_local_ca_jwt="true"
 ```
 
 **Step 3: Create Policy**

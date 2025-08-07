@@ -187,9 +187,9 @@ jobs:
         helm repo update
 
         # Install the operator
-        helm install vault-sync-operator vault-sync-operator/vault-sync-operator \\
-          --namespace vault-sync-operator-system \\
-          --create-namespace \\
+        helm install vault-sync-operator vault-sync-operator/vault-sync-operator \
+          --namespace vault-sync-operator-system \
+          --create-namespace \
           --set vault.address="http://&lt;vault-ip-address&gt;:8200"</code></pre>
                 </div>
 

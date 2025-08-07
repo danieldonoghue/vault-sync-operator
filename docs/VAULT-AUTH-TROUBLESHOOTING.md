@@ -218,14 +218,17 @@ path "secret/*" {
 # Check current configuration
 vault read auth/kubernetes/config
 
-# Get correct Kubernetes host
-kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}'
+# Collect cluster and service details
+KUBE_CA_CERT=$(kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}' | base64 --decode)
+KUBE_HOST=$(kubectl config view --raw --minify --flatten --output='jsonpath={.clusters[].cluster.server}')
+TOKEN_REVIEW_JWT=$(kubectl get secret vault-sync-operator-controller-manager-token -n vault-sync-operator-system -o go-template='{{ .data.token }}' | base64 --decode)
 
 # Update configuration
 vault write auth/kubernetes/config \
-    kubernetes_host="https://your-correct-k8s-api-server:443" \
-    kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt \
-    token_reviewer_jwt="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)"
+    token_reviewer_jwt="$TOKEN_REVIEW_JWT" \
+    kubernetes_host="$KUBE_HOST" \
+    kubernetes_ca_cert="$KUBE_CA_CERT" \
+    disable_local_ca_jwt="true"
 ```
 
 ## Debugging Commands Reference
@@ -326,11 +329,16 @@ Here's a complete, tested sequence for setting up Vault Kubernetes auth:
 # 1. Enable Kubernetes auth (from within a pod that has access to service account)
 vault auth enable kubernetes
 
-# 2. Configure the auth backend
+# 2. Configure the auth backen
+KUBE_CA_CERT=$(kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}' | base64 --decode)
+KUBE_HOST=$(kubectl config view --raw --minify --flatten --output='jsonpath={.clusters[].cluster.server}')
+TOKEN_REVIEW_JWT=$(kubectl get secret vault-sync-operator-controller-manager-token -n vault-sync-operator-system -o go-template='{{ .data.token }}' | base64 --decode)
+
 vault write auth/kubernetes/config \
-    kubernetes_host="https://kubernetes.default.svc.cluster.local" \
-    kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt \
-    token_reviewer_jwt="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)"
+    token_reviewer_jwt="$TOKEN_REVIEW_JWT" \
+    kubernetes_host="$KUBE_HOST" \
+    kubernetes_ca_cert="$KUBE_CA_CERT" \
+    disable_local_ca_jwt="true"
 
 # 3. Create policy
 vault policy write vault-sync-operator - <<EOF
