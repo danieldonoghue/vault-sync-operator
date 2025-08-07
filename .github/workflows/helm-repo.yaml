@@ -273,25 +273,6 @@ jobs:
         # Verify the index was created
         ls -la *.tgz index.yaml
 
-    - name: Create Artifact Hub metadata
-      run: |
-        # Create artifacthub-repo.yml for verified publisher status
-        cat > artifacthub-repo.yml << EOF
-        # Artifact Hub repository metadata file
-        # https://github.com/artifacthub/hub/blob/master/docs/metadata/artifacthub-repo.yml
-        
-        repositoryID: ${{ env.ARTIFACTHUB_REPO_ID }}
-        
-        owners:
-          - name: ${{ github.repository_owner }}
-            email: ${{ secrets.ARTIFACTHUB_OWNER_EMAIL }}
-        
-        ignore:
-          - name: "docs"
-          - name: "examples"
-          - name: "*.html"
-        EOF
-
     - name: Commit and push to gh-pages
       run: |
         # Configure git to use the GitHub token for authentication
