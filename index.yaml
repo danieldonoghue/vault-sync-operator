@@ -10,10 +10,10 @@ entries:
       artifacthub.io/prerelease: "true"
     apiVersion: v2
     appVersion: v0.0.1-beta.2
-    created: "2025-08-07T15:22:11.341837072Z"
+    created: "2025-08-07T15:33:11.062349052Z"
     description: A Helm chart for Vault Sync Operator - Kubernetes operator for syncing
       secrets to HashiCorp Vault
-    digest: 3484725ce6df7d71ff7b9e37a2aecf03d4b3165ddae45160f5e693f11b01e231
+    digest: 754acd5dcd6124318bc55636b7a4f965a85170956925b1fecccf70f4795611f8
     home: https://danieldonoghue.github.io/vault-sync-operator/
     keywords:
     - vault
@@ -39,7 +39,7 @@ entries:
       artifacthub.io/prerelease: "true"
     apiVersion: v2
     appVersion: v0.0.1-alpha.8
-    created: "2025-08-07T15:22:11.341341759Z"
+    created: "2025-08-07T15:33:11.061725892Z"
     description: A Helm chart for Vault Sync Operator - Kubernetes operator for syncing
       secrets to HashiCorp Vault
     digest: 36a0c054e22eeed104a93155821f5a04a11f915dd2d6d3cd659cdeec4a965851
@@ -59,4 +59,4 @@ entries:
     urls:
     - https://danieldonoghue.github.io/vault-sync-operator/vault-sync-operator-0.1.0.tgz
     version: 0.1.0
-generated: "2025-08-07T15:22:11.339800151Z"
+generated: "2025-08-07T15:33:11.061040603Z"
