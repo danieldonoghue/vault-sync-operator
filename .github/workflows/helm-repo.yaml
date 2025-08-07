@@ -191,7 +191,7 @@ jobs:
                     <h3>⚙️ Required Configuration</h3>
                     <p>You will need to configure your Vault server address:</p>
                     <ul>
-                        <li><code>vault.address</code> - Your Vault server address (e.g., "http://vault.example.com:8200")</li>
+                        <li><code>vault.address</code> - Your Vault server address (e.g., "http://vault.example.com:8200"; defaults to http://vault:8200)</li>
                     </ul>
                     
                     <p><strong>Optional Configuration:</strong></p>

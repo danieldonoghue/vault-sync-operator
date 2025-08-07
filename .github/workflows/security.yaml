@@ -5,6 +5,8 @@ on:
     - cron: '0 0 * * 0'  # Weekly on Sunday
   push:
     branches: [ master ]
+    paths-ignore:
+      - '.github/workflows/*'
   pull_request:
     branches: [ master ]
 
