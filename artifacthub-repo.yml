@@ -5,7 +5,7 @@ repositoryID: 7590d88d-22ae-4303-a5b9-afbdeddd3f24
 
 owners:
   - name: danieldonoghue
-    email: oneofsomany@hotmail.com
+    email: danieldonoghue@users.noreply.github.com
 
 ignore:
   - name: "docs"
