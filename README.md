@@ -29,6 +29,14 @@ The Vault Sync Operator supports multiple deployment methods:
 
 1. **Helm Chart (Recommended)**:
 ```bash
+# from helm repo...
+helm repo add vault-sync-operator https://danieldonoghue.github.io/vault-sync-operator/
+helm repo update
+helm install vault-sync-operator vault-sync-operator/vault-sync-operator \
+  --namespace vault-sync-operator-system \
+  --create-namespace
+
+# or from the git repo...
 git clone https://github.com/danieldonoghue/vault-sync-operator.git
 cd vault-sync-operator
 helm install vault-sync-operator ./charts/vault-sync-operator \
@@ -72,10 +80,15 @@ Quick setup:
 vault auth enable kubernetes
 
 # Configure the auth backend
+KUBE_CA_CERT=$(kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}' | base64 --decode)
+KUBE_HOST=$(kubectl config view --raw --minify --flatten --output='jsonpath={.clusters[].cluster.server}')
+TOKEN_REVIEW_JWT=$(kubectl get secret vault-sync-operator-controller-manager-token -n vault-sync-operator-system -o go-template='{{ .data.token }}' | base64 --decode)
+
 vault write auth/kubernetes/config \
-    token_reviewer_jwt="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" \
-    kubernetes_host="https://$KUBERNETES_PORT_443_TCP_ADDR:443" \
-    kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    token_reviewer_jwt="$TOKEN_REVIEW_JWT" \
+    kubernetes_host="$KUBE_HOST" \
+    kubernetes_ca_cert="$KUBE_CA_CERT" \
+    disable_local_ca_jwt="true"
 
 # Create a policy for the operator
 vault policy write vault-sync-operator - <<EOF
@@ -86,6 +99,14 @@ path "secret/data/*" {
 # Allow listing and reading secrets
 path "secret/metadata/*" {
   capabilities = ["list", "read"]
+}
+
+path "auth/token/renew-self" {
+  capabilities = ["update"]
+}
+
+path "auth/token/lookup-self" {
+  capabilities = ["read"]
 }
 EOF
 
@@ -496,7 +517,7 @@ kubectl logs -n vault-sync-operator-system deployment/vault-sync-operator-contro
 2. **Monitor metrics** (if Prometheus is available):
 ```bash
 # Check sync attempts
-kubectl port-forward -n vault-sync-operator-system svc/vault-sync-operator-controller-manager-metrics-service 8080:8443
+kubectl port-forward -n vault-sync-operator-system svc/vault-sync-operator-controller-manager-metrics-service 8080:8080
 curl http://localhost:8080/metrics | grep vault_sync_operator
 ```
 
@@ -510,6 +531,63 @@ kubectl get deployment <deployment-name> -o yaml | grep -A 10 annotations
 kubectl apply -f examples/troubleshooting-example.yaml
 # Check logs for expected error messages
 kubectl logs -n vault-sync-operator-system deployment/vault-sync-operator-controller-manager | grep troubleshooting-example
+```
+
+### Metrics Authentication
+
+The operator serves authenticated metrics on port 8080 using Controller-Runtime's built-in authentication and authorization. Authentication can be disabled if needed.
+
+**Configuration:**
+
+*Command line flag:*
+```bash
+# Enable authentication (default)
+--enable-metrics-auth=true
+
+# Disable authentication (not recommended for production)
+--enable-metrics-auth=false
+```
+
+*Helm chart:*
+```yaml
+controllerManager:
+  metrics:
+    enableAuth: true  # Enable authentication (default)
+    # enableAuth: false  # Disable authentication (not recommended for production)
+```
+
+**How it works:**
+- Metrics requests must include a valid Kubernetes bearer token
+- The operator validates tokens using the Kubernetes TokenReview API
+- Authorization is checked using SubjectAccessReview API
+- Only authenticated users with proper RBAC permissions can access metrics
+
+**For Prometheus scraping:**
+```yaml
+# Example ServiceMonitor for Prometheus Operator
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: vault-sync-operator-metrics
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: vault-sync-operator
+  endpoints:
+  - port: metrics
+    path: /metrics
+    scheme: http
+    bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+```
+
+**For manual access:**
+```bash
+# Get a service account token
+TOKEN=$(kubectl create token default -n vault-sync-operator-system)
+
+# Access metrics with authentication
+kubectl port-forward -n vault-sync-operator-system svc/vault-sync-operator-controller-manager-metrics-service 8080:8080
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8080/metrics
 ```
 
 ### Health Check Endpoints

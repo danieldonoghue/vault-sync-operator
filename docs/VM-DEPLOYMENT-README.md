@@ -233,7 +233,7 @@ kubectl run vault-test --image=vault:1.15.2 --rm -it -- vault version
 ## Security Considerations
 - All resources use proper RBAC with minimal required permissions
 - The operator runs as non-root user
-- Metrics endpoint is protected with kube-rbac-proxy
+- Metrics endpoint is protected with built-in Controller-Runtime authentication and authorization
 
 ## Support
 
