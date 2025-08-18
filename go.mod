@@ -12,9 +12,9 @@ require (
 	github.com/prometheus/client_golang v1.23.0
 	go.uber.org/automaxprocs v1.6.0
 	golang.org/x/time v0.12.0
-	k8s.io/api v0.33.3
-	k8s.io/apimachinery v0.33.3
-	k8s.io/client-go v0.33.3
+	k8s.io/api v0.33.4
+	k8s.io/apimachinery v0.33.4
+	k8s.io/client-go v0.33.4
 	sigs.k8s.io/controller-runtime v0.21.0
 )
 
