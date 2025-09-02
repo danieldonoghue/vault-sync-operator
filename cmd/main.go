@@ -137,6 +137,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err = (&controller.SecretReconciler{
+		Client:      mgr.GetClient(),
+		Scheme:      mgr.GetScheme(),
+		Log:         ctrl.Log.WithName("controllers").WithName("Secret"),
+		VaultClient: vaultClient,
+		ClusterName: clusterName,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Secret")
+		os.Exit(1)
+	}
+
 	if err := mgr.AddHealthzCheck("healthz", func(req *http.Request) error {
 		return vaultClient.HealthCheck(req.Context())
 	}); err != nil {
