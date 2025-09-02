@@ -1,4 +1,5 @@
 // Package controller contains the Kubernetes controller logic for the vault-sync-operator.
+// This file implements the DeploymentReconciler which handles Deployment resources with vault-sync annotations.
 package controller
 
 import (

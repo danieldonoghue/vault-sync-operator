@@ -2,16 +2,17 @@
 
 ## Project Overview
 
-Successfully created a complete Kubernetes operator called `vault-sync-operator` that automatically syncs Kubernetes secrets to HashiCorp Vault using deployment annotations.
+Successfully created a complete Kubernetes operator called `vault-sync-operator` that automatically syncs Kubernetes secrets to HashiCorp Vault using annotations on Deployments and Secrets.
 
 ## Key Features Implemented
 
-1. **Automatic Secret Synchronization**: Watches Kubernetes Deployments for specific annotations and syncs referenced secrets to Vault
-2. **Vault Kubernetes Authentication**: Uses Vault's Kubernetes auth backend for secure authentication
-3. **Selective Key Synchronization**: Allows choosing specific keys from secrets to sync
-4. **Key Prefixing**: Supports adding prefixes to secret keys when storing in Vault
-5. **Cleanup on Deletion**: Automatically removes secrets from Vault when deployments are deleted
-6. **Finalizer Management**: Uses Kubernetes finalizers to ensure proper cleanup
+1. **Dual Sync Modes**: Watches both Kubernetes Deployments and Secrets for specific annotations and syncs secrets to Vault
+2. **Automatic Secret Synchronization**: Supports both deployment-based and direct secret synchronization
+3. **Vault Kubernetes Authentication**: Uses Vault's Kubernetes auth backend for secure authentication
+4. **Selective Key Synchronization**: Allows choosing specific keys from secrets to sync
+5. **Key Prefixing**: Supports adding prefixes to secret keys when storing in Vault
+6. **Cleanup on Deletion**: Automatically removes secrets from Vault when deployments or secrets are deleted
+7. **Finalizer Management**: Uses Kubernetes finalizers to ensure proper cleanup
 
 ## Project Structure
 
@@ -21,7 +22,9 @@ vault-sync-operator/
 │   └── main.go                 # Main application entry point
 ├── internal/
 │   ├── controller/
-│   │   └── deployment_controller.go  # Deployment reconciler logic
+│   │   ├── deployment_controller.go  # Deployment reconciler logic
+│   │   ├── secret_controller.go      # Secret reconciler logic
+│   │   └── sync_common.go           # Shared sync functionality
 │   ├── vault/
 │   │   ├── client.go           # Vault client with K8s auth
 │   │   └── health.go           # Vault health checks
@@ -83,7 +86,7 @@ vault-sync-operator/
 ### 3. Main Application (`cmd/main.go`)
 - Sets up the controller manager
 - Configures command-line flags and logging
-- Initializes Vault client and controllers
+- Initializes Vault client and registers both Deployment and Secret controllers
 
 ## Annotations Used
 
@@ -92,10 +95,11 @@ vault-sync-operator/
 | `vault-sync.io/path` | Yes | Vault storage path (enables sync) | `"secret/data/my-app"` |
 | `vault-sync.io/secrets` | No | Custom secret configuration JSON | See examples |
 
-**Note**: The presence of `vault-sync.io/path` automatically enables vault sync. The `vault-sync.io/secrets` annotation is optional and only needed for selective key syncing or prefixing.
+**Note**: The presence of `vault-sync.io/path` automatically enables vault sync on both Deployments and Secrets. The `vault-sync.io/secrets` annotation is optional and only needed for selective key syncing or prefixing.
 
 ## Example Usage
 
+### Deployment-Based Sync
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -108,9 +112,23 @@ spec:
   # ... deployment spec
 ```
 
+### Direct Secret Sync
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-secret
+  annotations:
+    vault-sync.io/path: "secret/data/my-secret"
+    # Optional: vault-sync.io/secrets for custom configuration
+type: Opaque
+data:
+  key1: dmFsdWUx  # base64 encoded value
+```
+
 ## Security Features
 
-1. **RBAC Permissions**: Minimal required permissions (read deployments/secrets, update finalizers)
+1. **RBAC Permissions**: Required permissions for deployments and secrets (read/watch/update for annotations and finalizers)
 2. **Service Account Authentication**: Uses Kubernetes service account tokens
 3. **Vault Policies**: Configurable Vault policies for least privilege access
 4. **Secure Communication**: TLS support for Vault communication

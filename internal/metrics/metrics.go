@@ -13,7 +13,7 @@ var (
 			Name: "vault_sync_operator_sync_attempts_total",
 			Help: "Total number of secret sync attempts",
 		},
-		[]string{"namespace", "deployment", "result"},
+		[]string{"namespace", "resource", "result"},
 	)
 
 	// SecretsyncDuration tracks the duration of secret sync operations.
@@ -23,7 +23,7 @@ var (
 			Help:    "Duration of secret sync operations in seconds",
 			Buckets: prometheus.DefBuckets,
 		},
-		[]string{"namespace", "deployment"},
+		[]string{"namespace", "resource"},
 	)
 
 	// VaultAuthAttempts tracks Vault authentication attempts.
@@ -41,7 +41,7 @@ var (
 			Name: "vault_sync_operator_secrets_discovered",
 			Help: "Number of secrets discovered in deployments",
 		},
-		[]string{"namespace", "deployment"},
+		[]string{"namespace", "resource"},
 	)
 
 	// VaultWriteErrors tracks Vault write errors by type.
@@ -77,7 +77,7 @@ var (
 			Name: "vault_sync_operator_config_parse_errors_total",
 			Help: "Total number of configuration parsing errors",
 		},
-		[]string{"namespace", "deployment", "error_type"},
+		[]string{"namespace", "resource", "error_type"},
 	)
 
 	// RuntimeInfo provides information about Go runtime configuration.
