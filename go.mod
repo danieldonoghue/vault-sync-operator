@@ -13,7 +13,7 @@ require (
 	go.uber.org/automaxprocs v1.6.0
 	golang.org/x/time v0.12.0
 	k8s.io/api v0.34.0
-	k8s.io/apimachinery v0.34.0
+	k8s.io/apimachinery v0.34.3
 	k8s.io/client-go v0.34.0
 	sigs.k8s.io/controller-runtime v0.21.0
 )
