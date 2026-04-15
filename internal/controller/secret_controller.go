@@ -159,7 +159,9 @@ func (r *SecretReconciler) syncSecretToVault(ctx context.Context, secret *corev1
 	var err error
 
 	if hasCustomConfig && secretsToSync != "" {
-		// Use custom configuration (self-referential for secrets)
+		// Use custom configuration. Note: for secret-level sync, this allows referencing
+		// multiple secrets within the same namespace for composite secret syncing.
+		// Ensure the secret config is provided by admins or use RBAC to restrict secret.metadata.annotations update.
 		log.Info("using custom secret configuration", "config", secretsToSync)
 		vaultData, currentSecretVersions, err = syncCtx.SyncCustomSecretsWithVersions(ctx, resourceInfo, secretsToSync, secret.Namespace)
 		if err != nil {

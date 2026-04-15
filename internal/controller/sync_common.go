@@ -234,6 +234,7 @@ func (sc *SyncContext) GetChangedSecrets(lastVersions, currentVersions map[strin
 // Note: getSecretKeys is defined in deployment_controller.go to avoid duplication
 
 // ParseSecretVersionsAnnotation parses the secret versions annotation.
+// Returns an empty map (never nil) to ensure consistent behavior for JSON marshaling.
 func ParseSecretVersionsAnnotation(annotationValue string, log logr.Logger, resourceName, resourceNamespace string) map[string]string {
 	if annotationValue == "" {
 		return make(map[string]string)
@@ -245,6 +246,11 @@ func ParseSecretVersionsAnnotation(annotationValue string, log logr.Logger, reso
 			"annotation", annotationValue,
 			"resource", resourceName,
 			"namespace", resourceNamespace)
+		return make(map[string]string)
+	}
+
+	// Normalize nil map to empty map to ensure json.Unmarshal with 'null' returns consistent type
+	if versions == nil {
 		return make(map[string]string)
 	}
 
