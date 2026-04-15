@@ -3,6 +3,7 @@ name: Security
 on:
   schedule:
     - cron: '0 0 * * 0'  # Weekly on Sunday
+  workflow_dispatch:
   push:
     branches: [ master ]
     paths-ignore:
@@ -36,6 +37,15 @@ jobs:
       if: always()
       with:
         sarif_file: 'trivy-results.sarif'
+      continue-on-error: true
+
+    # Keep category upload during transition while preserving legacy job-based config matching.
+    - name: Upload Trivy scan results (category)
+      uses: github/codeql-action/upload-sarif@v4
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+        category: trivy-fs
       continue-on-error: true
 
   docker-security-scan:
