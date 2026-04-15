@@ -36,6 +36,7 @@ jobs:
       if: always()
       with:
         sarif_file: 'trivy-results.sarif'
+        category: trivy-fs
       continue-on-error: true
 
   docker-security-scan:
@@ -70,6 +71,7 @@ jobs:
       if: always()
       with:
         sarif_file: 'docker-trivy-results.sarif'
+        category: trivy-docker
       continue-on-error: true
 
   dependency-review:
