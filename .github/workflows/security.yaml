@@ -36,12 +36,13 @@ jobs:
       if: always()
       with:
         sarif_file: 'trivy-results.sarif'
+        category: trivy-fs
       continue-on-error: true
 
   docker-security-scan:
     name: Docker Security Scan
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event_name == 'schedule'
+    if: github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'pull_request'
     steps:
     - name: Checkout code
       uses: actions/checkout@v5
@@ -70,6 +71,7 @@ jobs:
       if: always()
       with:
         sarif_file: 'docker-trivy-results.sarif'
+        category: trivy-docker
       continue-on-error: true
 
   dependency-review:
