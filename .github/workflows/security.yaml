@@ -36,7 +36,6 @@ jobs:
       if: always()
       with:
         sarif_file: 'trivy-results.sarif'
-        category: trivy-fs
       continue-on-error: true
 
   docker-security-scan:
@@ -67,6 +66,14 @@ jobs:
         output: 'docker-trivy-results.sarif'
 
     - name: Upload Docker Trivy scan results
+      uses: github/codeql-action/upload-sarif@v4
+      if: always()
+      with:
+        sarif_file: 'docker-trivy-results.sarif'
+      continue-on-error: true
+
+    # Keep category upload during transition while preserving legacy job-based config matching.
+    - name: Upload Docker Trivy scan results (category)
       uses: github/codeql-action/upload-sarif@v4
       if: always()
       with:
