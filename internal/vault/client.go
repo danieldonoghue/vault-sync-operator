@@ -174,7 +174,7 @@ func (c *Client) prepareDataForKVVersion(path string, data map[string]interface{
 			"data": data,
 		}
 	}
-	
+
 	// KV v1 uses data directly
 	return data
 }
@@ -192,7 +192,7 @@ func (c *Client) preparePathForKVDelete(path string) string {
 		// KV v2 path already has "/data/" - use as-is
 		return path
 	}
-	
+
 	// Check if this is a KV v1 path that should be converted to KV v2
 	// If the path starts with "secret/" but doesn't have "/data/", it might be KV v1 format
 	if len(path) > 7 && path[:7] == "secret/" && (len(path) <= 12 || path[7:13] != "data/") {
@@ -201,7 +201,7 @@ func (c *Client) preparePathForKVDelete(path string) string {
 		// Convert "secret/path" to "secret/data/path"
 		return "secret/data/" + path[7:]
 	}
-	
+
 	// Return path as-is for any other cases
 	return path
 }

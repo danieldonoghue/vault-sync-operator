@@ -68,21 +68,20 @@ func (r *SecretReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	// Sync secret to Vault
-	result, err := r.syncSecretToVault(ctx, secret)
-	if err != nil {
-		return result, err
+	if err := r.syncSecretToVault(ctx, secret); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	// Check if periodic reconciliation is enabled
 	reconcileInterval := r.getReconcileInterval(secret)
 	if reconcileInterval > 0 {
-		log.V(1).Info("periodic reconciliation enabled", 
+		log.V(1).Info("periodic reconciliation enabled",
 			"interval", reconcileInterval,
 			"next_reconcile", time.Now().Add(reconcileInterval))
-		result.RequeueAfter = reconcileInterval
+		return ctrl.Result{RequeueAfter: reconcileInterval}, nil
 	}
 
-	return result, nil
+	return ctrl.Result{}, nil
 }
 
 // handleDeletion handles the deletion of secrets from Vault when a secret is deleted.
@@ -132,7 +131,7 @@ func (r *SecretReconciler) handleDeletion(ctx context.Context, secret *corev1.Se
 }
 
 // syncSecretToVault syncs the secret to Vault.
-func (r *SecretReconciler) syncSecretToVault(ctx context.Context, secret *corev1.Secret) (ctrl.Result, error) {
+func (r *SecretReconciler) syncSecretToVault(ctx context.Context, secret *corev1.Secret) error {
 	log := r.Log.WithValues("secret", secret.Name, "namespace", secret.Namespace)
 
 	// Get the vault path (we already know it exists from reconcile check)
@@ -165,7 +164,7 @@ func (r *SecretReconciler) syncSecretToVault(ctx context.Context, secret *corev1
 		vaultData, currentSecretVersions, err = syncCtx.SyncCustomSecretsWithVersions(ctx, resourceInfo, secretsToSync, secret.Namespace)
 		if err != nil {
 			log.Error(err, "failed to sync custom secret configuration")
-			return ctrl.Result{}, err
+			return err
 		}
 	} else {
 		// Sync all keys from this secret
@@ -173,7 +172,7 @@ func (r *SecretReconciler) syncSecretToVault(ctx context.Context, secret *corev1
 		vaultData, currentSecretVersions, err = syncCtx.SyncAllSecretKeys(ctx, resourceInfo, secret)
 		if err != nil {
 			log.Error(err, "failed to sync all secret keys")
-			return ctrl.Result{}, err
+			return err
 		}
 	}
 
@@ -193,7 +192,7 @@ func (r *SecretReconciler) syncSecretToVault(ctx context.Context, secret *corev1
 		log.Info("no secret changes detected, skipping vault sync",
 			"last_versions", lastKnownVersions,
 			"current_versions", currentSecretVersions)
-		return ctrl.Result{}, nil
+		return nil
 	}
 
 	if hasChanges {
@@ -203,7 +202,7 @@ func (r *SecretReconciler) syncSecretToVault(ctx context.Context, secret *corev1
 
 	// Write to Vault
 	if err := syncCtx.WriteSecretToVault(ctx, vaultPath, vaultData, resourceInfo); err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
 
 	// Update secret versions annotation for future rotation detection
@@ -213,7 +212,7 @@ func (r *SecretReconciler) syncSecretToVault(ctx context.Context, secret *corev1
 		// Don't fail the whole operation for annotation update failure
 	}
 
-	return ctrl.Result{}, nil
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -246,7 +245,7 @@ func (r *SecretReconciler) getReconcileInterval(secret *corev1.Secret) time.Dura
 	if !exists || reconcileValue == "" || reconcileValue == "off" {
 		return 0 // Disabled
 	}
-	
+
 	duration, err := time.ParseDuration(reconcileValue)
 	if err != nil {
 		r.Log.Error(err, "invalid reconcile interval annotation, disabling periodic reconciliation",
@@ -255,7 +254,7 @@ func (r *SecretReconciler) getReconcileInterval(secret *corev1.Secret) time.Dura
 			"annotation_value", reconcileValue)
 		return 0 // Disabled on parse error
 	}
-	
+
 	// Enforce minimum interval of 30 seconds to prevent excessive reconciliation
 	if duration < 30*time.Second {
 		r.Log.Info("reconcile interval too short, using minimum of 30 seconds",
@@ -265,6 +264,6 @@ func (r *SecretReconciler) getReconcileInterval(secret *corev1.Secret) time.Dura
 			"enforced", 30*time.Second)
 		return 30 * time.Second
 	}
-	
+
 	return duration
 }

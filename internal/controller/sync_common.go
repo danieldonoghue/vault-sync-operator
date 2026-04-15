@@ -102,7 +102,7 @@ func (sc *SyncContext) SyncCustomSecretsWithVersions(ctx context.Context, resour
 }
 
 // SyncAllSecretKeys syncs all keys from a single secret (used when no custom config provided).
-func (sc *SyncContext) SyncAllSecretKeys(ctx context.Context, resource ResourceInfo, secret *corev1.Secret) (map[string]interface{}, map[string]string, error) {
+func (sc *SyncContext) SyncAllSecretKeys(_ context.Context, resource ResourceInfo, secret *corev1.Secret) (map[string]interface{}, map[string]string, error) {
 	log := sc.Log.WithValues("resource_type", resource.Type, "resource", resource.Name, "namespace", resource.Namespace)
 
 	// Create vault data from all secret keys

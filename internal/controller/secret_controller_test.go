@@ -9,7 +9,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-// TestSecretReconcilerGetReconcileInterval tests the getReconcileInterval method
+// TestSecretReconcilerGetReconcileInterval tests the getReconcileInterval method.
 func TestSecretReconcilerGetReconcileInterval(t *testing.T) {
 	reconciler := &SecretReconciler{
 		Log: ctrl.Log.WithName("test"),
@@ -94,7 +94,7 @@ func TestSecretReconcilerGetReconcileInterval(t *testing.T) {
 	}
 }
 
-// TestSecretReconcilerIsRotationCheckDisabled tests the isRotationCheckDisabled method
+// TestSecretReconcilerIsRotationCheckDisabled tests the isRotationCheckDisabled method.
 func TestSecretReconcilerIsRotationCheckDisabled(t *testing.T) {
 	reconciler := &SecretReconciler{
 		Log: ctrl.Log.WithName("test"),
@@ -151,7 +151,7 @@ func TestSecretReconcilerIsRotationCheckDisabled(t *testing.T) {
 	}
 }
 
-// TestSecretReconcilerGetLastKnownSecretVersions tests the getLastKnownSecretVersions method
+// TestSecretReconcilerGetLastKnownSecretVersions tests the getLastKnownSecretVersions method.
 func TestSecretReconcilerGetLastKnownSecretVersions(t *testing.T) {
 	reconciler := &SecretReconciler{
 		Log: ctrl.Log.WithName("test"),

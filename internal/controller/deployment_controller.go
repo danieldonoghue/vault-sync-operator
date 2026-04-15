@@ -95,16 +95,16 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	if err != nil {
 		return result, err
 	}
-	
+
 	// Check if periodic reconciliation is enabled
 	reconcileInterval := r.getReconcileInterval(deployment)
 	if reconcileInterval > 0 {
-		log.V(1).Info("periodic reconciliation enabled", 
+		log.V(1).Info("periodic reconciliation enabled",
 			"interval", reconcileInterval,
 			"next_reconcile", time.Now().Add(reconcileInterval))
 		result.RequeueAfter = reconcileInterval
 	}
-	
+
 	return result, nil
 }
 
@@ -327,7 +327,6 @@ func (r *DeploymentReconciler) syncCustomSecretsWithVersions(ctx context.Context
 	return vaultData, secretVersions, nil
 }
 
-
 // syncAutoDiscoveredSecretsToSubPaths auto-discovers secrets and writes each to its own sub-path.
 func (r *DeploymentReconciler) syncAutoDiscoveredSecretsToSubPaths(ctx context.Context, deployment *appsv1.Deployment, basePath string) (map[string]string, error) {
 	log := r.Log.WithValues("deployment", deployment.Name, "namespace", deployment.Namespace)
@@ -375,8 +374,8 @@ func (r *DeploymentReconciler) syncAutoDiscoveredSecretsToSubPaths(ctx context.C
 
 		// Write to sub-path: basePath/secretName
 		secretPath := fmt.Sprintf("%s/%s", basePath, secretName)
-		
-		log.Info("writing secret to vault sub-path", 
+
+		log.Info("writing secret to vault sub-path",
 			"secret", secretName,
 			"path", secretPath,
 			"keys", len(secretData))
@@ -560,7 +559,7 @@ func (r *DeploymentReconciler) getReconcileInterval(deployment *appsv1.Deploymen
 	if !exists || reconcileValue == "" || reconcileValue == "off" {
 		return 0 // Disabled
 	}
-	
+
 	duration, err := time.ParseDuration(reconcileValue)
 	if err != nil {
 		r.Log.Error(err, "invalid reconcile interval annotation, disabling periodic reconciliation",
@@ -569,7 +568,7 @@ func (r *DeploymentReconciler) getReconcileInterval(deployment *appsv1.Deploymen
 			"annotation_value", reconcileValue)
 		return 0 // Disabled on parse error
 	}
-	
+
 	// Enforce minimum interval of 30 seconds to prevent excessive reconciliation
 	if duration < 30*time.Second {
 		r.Log.Info("reconcile interval too short, using minimum of 30 seconds",
@@ -579,6 +578,6 @@ func (r *DeploymentReconciler) getReconcileInterval(deployment *appsv1.Deploymen
 			"enforced", 30*time.Second)
 		return 30 * time.Second
 	}
-	
+
 	return duration
 }

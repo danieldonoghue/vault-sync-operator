@@ -13,41 +13,41 @@ func TestParseSecretVersionsAnnotation(t *testing.T) {
 	resourceNamespace := "default"
 
 	tests := []struct {
-		name           string
+		name            string
 		annotationValue string
-		expected       map[string]string
+		expected        map[string]string
 	}{
 		{
-			name:           "empty annotation",
+			name:            "empty annotation",
 			annotationValue: "",
-			expected:       map[string]string{},
+			expected:        map[string]string{},
 		},
 		{
-			name:           "valid JSON annotation",
+			name:            "valid JSON annotation",
 			annotationValue: `{"secret1":"v1","secret2":"v2"}`,
-			expected:       map[string]string{"secret1": "v1", "secret2": "v2"},
+			expected:        map[string]string{"secret1": "v1", "secret2": "v2"},
 		},
 		{
-			name:           "invalid JSON annotation",
+			name:            "invalid JSON annotation",
 			annotationValue: `{invalid json}`,
-			expected:       map[string]string{},
+			expected:        map[string]string{},
 		},
 		{
-			name:           "null annotation",
+			name:            "null annotation",
 			annotationValue: "null",
-			expected:       map[string]string{},
+			expected:        map[string]string{},
 		},
 		{
-			name:           "empty object",
+			name:            "empty object",
 			annotationValue: "{}",
-			expected:       map[string]string{},
+			expected:        map[string]string{},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := ParseSecretVersionsAnnotation(tt.annotationValue, log, resourceName, resourceNamespace)
-			
+
 			if len(result) != len(tt.expected) {
 				t.Errorf("ParseSecretVersionsAnnotation() length = %v, expected %v", len(result), len(tt.expected))
 				return

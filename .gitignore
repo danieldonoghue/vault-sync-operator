@@ -20,6 +20,7 @@ go.work
 # Build output
 bin/
 *.tar.gz
+/main
 
 # Kubernetes
 # config/rbac/role.yaml  # Commented out - this file should be committed
