@@ -6,7 +6,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-// TestParseSecretVersionsAnnotation tests the ParseSecretVersionsAnnotation function
+// TestParseSecretVersionsAnnotation tests the ParseSecretVersionsAnnotation function.
 func TestParseSecretVersionsAnnotation(t *testing.T) {
 	log := ctrl.Log.WithName("test")
 	resourceName := "test-resource"
@@ -62,7 +62,7 @@ func TestParseSecretVersionsAnnotation(t *testing.T) {
 	}
 }
 
-// TestSyncContextDetectSecretChanges tests the DetectSecretChanges method
+// TestSyncContextDetectSecretChanges tests the DetectSecretChanges method.
 func TestSyncContextDetectSecretChanges(t *testing.T) {
 	syncCtx := &SyncContext{
 		Log: ctrl.Log.WithName("test"),
@@ -122,7 +122,7 @@ func TestSyncContextDetectSecretChanges(t *testing.T) {
 	}
 }
 
-// TestSyncContextGetChangedSecrets tests the GetChangedSecrets method
+// TestSyncContextGetChangedSecrets tests the GetChangedSecrets method.
 func TestSyncContextGetChangedSecrets(t *testing.T) {
 	syncCtx := &SyncContext{
 		Log: ctrl.Log.WithName("test"),

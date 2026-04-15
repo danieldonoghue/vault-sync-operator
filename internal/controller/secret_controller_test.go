@@ -176,14 +176,14 @@ func TestSecretReconcilerGetLastKnownSecretVersions(t *testing.T) {
 		},
 		{
 			name: "valid JSON annotation",
-			annotations: map[string]string{
+			annotations: map[string]string{ //nolint:gosec // test fixture string, not a credential
 				VaultSecretVersionsAnnotation: `{"secret1":"v1","secret2":"v2"}`,
 			},
 			expected: map[string]string{"secret1": "v1", "secret2": "v2"},
 		},
 		{
 			name: "invalid JSON annotation",
-			annotations: map[string]string{
+			annotations: map[string]string{ //nolint:gosec // test fixture string, not a credential
 				VaultSecretVersionsAnnotation: `{invalid json}`,
 			},
 			expected: map[string]string{},
