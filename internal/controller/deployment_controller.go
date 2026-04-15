@@ -1,4 +1,5 @@
 // Package controller contains the Kubernetes controller logic for the vault-sync-operator.
+// This file implements the DeploymentReconciler which handles Deployment resources with vault-sync annotations.
 package controller
 
 import (
@@ -45,10 +46,14 @@ type DeploymentReconciler struct {
 	ClusterName string // Optional cluster identifier for multi-cluster Vault paths
 }
 
-// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;update;patch
 // +kubebuilder:rbac:groups=apps,resources=deployments/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=apps,resources=deployments/finalizers,verbs=update
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
+// +kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=create;get;list;update;watch
+// +kubebuilder:rbac:groups=authentication.k8s.io,resources=tokenreviews,verbs=create
+// +kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -94,16 +99,16 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	if err != nil {
 		return result, err
 	}
-	
+
 	// Check if periodic reconciliation is enabled
 	reconcileInterval := r.getReconcileInterval(deployment)
 	if reconcileInterval > 0 {
-		log.V(1).Info("periodic reconciliation enabled", 
+		log.V(1).Info("periodic reconciliation enabled",
 			"interval", reconcileInterval,
 			"next_reconcile", time.Now().Add(reconcileInterval))
 		result.RequeueAfter = reconcileInterval
 	}
-	
+
 	return result, nil
 }
 
@@ -326,7 +331,6 @@ func (r *DeploymentReconciler) syncCustomSecretsWithVersions(ctx context.Context
 	return vaultData, secretVersions, nil
 }
 
-
 // syncAutoDiscoveredSecretsToSubPaths auto-discovers secrets and writes each to its own sub-path.
 func (r *DeploymentReconciler) syncAutoDiscoveredSecretsToSubPaths(ctx context.Context, deployment *appsv1.Deployment, basePath string) (map[string]string, error) {
 	log := r.Log.WithValues("deployment", deployment.Name, "namespace", deployment.Namespace)
@@ -374,8 +378,8 @@ func (r *DeploymentReconciler) syncAutoDiscoveredSecretsToSubPaths(ctx context.C
 
 		// Write to sub-path: basePath/secretName
 		secretPath := fmt.Sprintf("%s/%s", basePath, secretName)
-		
-		log.Info("writing secret to vault sub-path", 
+
+		log.Info("writing secret to vault sub-path",
 			"secret", secretName,
 			"path", secretPath,
 			"keys", len(secretData))
@@ -559,7 +563,7 @@ func (r *DeploymentReconciler) getReconcileInterval(deployment *appsv1.Deploymen
 	if !exists || reconcileValue == "" || reconcileValue == "off" {
 		return 0 // Disabled
 	}
-	
+
 	duration, err := time.ParseDuration(reconcileValue)
 	if err != nil {
 		r.Log.Error(err, "invalid reconcile interval annotation, disabling periodic reconciliation",
@@ -568,7 +572,7 @@ func (r *DeploymentReconciler) getReconcileInterval(deployment *appsv1.Deploymen
 			"annotation_value", reconcileValue)
 		return 0 // Disabled on parse error
 	}
-	
+
 	// Enforce minimum interval of 30 seconds to prevent excessive reconciliation
 	if duration < 30*time.Second {
 		r.Log.Info("reconcile interval too short, using minimum of 30 seconds",
@@ -578,6 +582,6 @@ func (r *DeploymentReconciler) getReconcileInterval(deployment *appsv1.Deploymen
 			"enforced", 30*time.Second)
 		return 30 * time.Second
 	}
-	
+
 	return duration
 }

@@ -31,7 +31,7 @@ jobs:
       uses: actions/checkout@v5
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version: ${{ env.GO_VERSION }}
 
@@ -83,14 +83,14 @@ jobs:
       uses: actions/checkout@v5
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version: ${{ env.GO_VERSION }}
 
     - name: Run golangci-lint
-      uses: golangci/golangci-lint-action@v7
+      uses: golangci/golangci-lint-action@v9
       with:
-        version: latest
+        version: v2.11.4
         args: --timeout=5m
 
   security:
@@ -101,17 +101,17 @@ jobs:
       uses: actions/checkout@v5
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version: ${{ env.GO_VERSION }}
 
     - name: Run Gosec Security Scanner
-      uses: securego/gosec@master
+      uses: securego/gosec@v2.25.0
       with:
         args: '-no-fail -fmt sarif -out results.sarif ./...'
 
     - name: Upload SARIF file
-      uses: github/codeql-action/upload-sarif@v3
+      uses: github/codeql-action/upload-sarif@v4
       with:
         sarif_file: results.sarif
       continue-on-error: true
@@ -132,7 +132,7 @@ jobs:
       uses: actions/checkout@v5
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version: ${{ env.GO_VERSION }}
 
@@ -182,17 +182,20 @@ jobs:
     steps:
     - name: Clean PR caches
       run: |
-        echo "Cleaning caches for merged PR #${{ github.event.number }} from branch ${{ github.head_ref }}"
+        echo "Cleaning caches for merged PR #${PR_NUMBER} from branch ${BRANCH_REF}"
         
         # Clean caches that contain the PR branch name or PR number
-        gh api repos/${{ github.repository }}/actions/caches --paginate | \
-        jq -r --arg branch "${{ github.head_ref }}" --arg pr "${{ github.event.number }}" \
+        gh api repos/${REPOSITORY}/actions/caches --paginate | \
+        jq -r --arg branch "${BRANCH_REF}" --arg pr "${PR_NUMBER}" \
         '.actions_caches[] | select(.key | contains($branch) or contains("pr-" + $pr) or contains("refs-pull-" + $pr)) | .id' | \
         while read cache_id; do
           echo "Deleting cache ID: $cache_id"
-          gh api repos/${{ github.repository }}/actions/caches/$cache_id -X DELETE || echo "Failed to delete cache $cache_id"
+          gh api repos/${REPOSITORY}/actions/caches/$cache_id -X DELETE || echo "Failed to delete cache $cache_id"
         done
         
         echo "PR cache cleanup completed"
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        BRANCH_REF: ${{ github.head_ref }}
+        PR_NUMBER: ${{ github.event.number }}
+        REPOSITORY: ${{ github.repository }}

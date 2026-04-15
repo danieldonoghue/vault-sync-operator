@@ -5,15 +5,38 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - secrets/finalizers
+  verbs:
+  - update
+- apiGroups:
   - apps
   resources:
   - deployments
   verbs:
   - get
   - list
-  - watch
-  - update
   - patch
+  - update
+  - watch
 - apiGroups:
   - apps
   resources:
@@ -29,37 +52,6 @@ rules:
   - patch
   - update
 - apiGroups:
-  - ""
-  resources:
-  - secrets
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - coordination.k8s.io
-  resources:
-  - leases
-  verbs:
-  - get
-  - list
-  - create
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - ""
-  resources:
-  - events
-  verbs:
-  - create
-  - patch
-# Permissions needed for metrics authentication
-- apiGroups:
   - authentication.k8s.io
   resources:
   - tokenreviews
@@ -71,14 +63,13 @@ rules:
   - subjectaccessreviews
   verbs:
   - create
-# Permissions for metrics endpoint access
 - apiGroups:
-  - metrics.k8s.io
+  - coordination.k8s.io
   resources:
-  - "*"
+  - leases
   verbs:
+  - create
   - get
-- nonResourceURLs:
-  - /metrics
-  verbs:
-  - get
+  - list
+  - update
+  - watch

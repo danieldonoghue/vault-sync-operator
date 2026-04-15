@@ -8,22 +8,28 @@ import (
 
 var (
 	// SecretsyncAttempts tracks the number of secret sync attempts.
+	// BREAKING CHANGE (v0.2.0): label changed from "deployment" to "resource" to support both
+	// deployment-based and secret-level sync. Prometheus queries referencing the old "deployment"
+	// label must be updated to use "resource" instead.
 	SecretsyncAttempts = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "vault_sync_operator_sync_attempts_total",
 			Help: "Total number of secret sync attempts",
 		},
-		[]string{"namespace", "deployment", "result"},
+		[]string{"namespace", "resource", "result"},
 	)
 
 	// SecretsyncDuration tracks the duration of secret sync operations.
+	// BREAKING CHANGE (v0.2.0): label changed from "deployment" to "resource" to support both
+	// deployment-based and secret-level sync. Prometheus queries and Grafana dashboards referencing
+	// the old "deployment" label must be updated to use "resource" instead.
 	SecretsyncDuration = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "vault_sync_operator_sync_duration_seconds",
 			Help:    "Duration of secret sync operations in seconds",
 			Buckets: prometheus.DefBuckets,
 		},
-		[]string{"namespace", "deployment"},
+		[]string{"namespace", "resource"},
 	)
 
 	// VaultAuthAttempts tracks Vault authentication attempts.
@@ -36,12 +42,14 @@ var (
 	)
 
 	// SecretsDiscovered tracks the number of auto-discovered secrets.
+	// BREAKING CHANGE (v0.2.0): label changed from "deployment" to "resource" to support both
+	// deployment-based and secret-level sync.
 	SecretsDiscovered = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "vault_sync_operator_secrets_discovered",
-			Help: "Number of secrets discovered in deployments",
+			Help: "Number of secrets discovered in deployments and Secret resources",
 		},
-		[]string{"namespace", "deployment"},
+		[]string{"namespace", "resource"},
 	)
 
 	// VaultWriteErrors tracks Vault write errors by type.
@@ -77,7 +85,7 @@ var (
 			Name: "vault_sync_operator_config_parse_errors_total",
 			Help: "Total number of configuration parsing errors",
 		},
-		[]string{"namespace", "deployment", "error_type"},
+		[]string{"namespace", "resource", "error_type"},
 	)
 
 	// RuntimeInfo provides information about Go runtime configuration.

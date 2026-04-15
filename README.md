@@ -1,18 +1,19 @@
 # Vault Sync Operator
 
-A Kubernetes operator that automatically syncs secrets from Kubernetes to HashiCorp Vault using annotations on Deployments.
+A Kubernetes operator that automatically syncs secrets from Kubernetes to HashiCorp Vault using annotations on Deployments and Secrets.
 
 ## Overview
 
-The Vault Sync Operator watches for Kubernetes Deployments with specific annotations and automatically pushes the referenced secrets to HashiCorp Vault. It uses Vault's Kubernetes authentication backend for secure authentication.
+The Vault Sync Operator watches for Kubernetes Deployments and Secrets with specific annotations and automatically pushes the referenced secrets to HashiCorp Vault. It uses Vault's Kubernetes authentication backend for secure authentication.
 
 ## Features
 
-- **Automatic Secret Synchronization**: Sync Kubernetes secrets to Vault based on deployment annotations
+- **Automatic Secret Synchronization**: Sync Kubernetes secrets to Vault based on deployment or secret annotations
+- **Multiple Sync Modes**: Support for both Deployment-based and direct Secret-based synchronization
 - **Kubernetes Authentication**: Uses Vault's Kubernetes auth backend for secure authentication
 - **Selective Secret Keys**: Choose specific keys from secrets to sync to Vault
 - **Key Prefixing**: Add prefixes to secret keys when storing in Vault
-- **Cleanup on Deletion**: Automatically removes secrets from Vault when deployments are deleted
+- **Cleanup on Deletion**: Automatically removes secrets from Vault when deployments or secrets are deleted
 - **RBAC Support**: Proper Kubernetes RBAC permissions for secure operation
 
 ## Quick Start
@@ -172,7 +173,11 @@ All errors are logged with structured logging including relevant context (namesp
 
 ## Usage
 
-### Basic Example
+The Vault Sync Operator supports two primary sync modes: **Deployment-based sync** and **Direct Secret sync**.
+
+### Deployment-Based Sync
+
+This mode syncs secrets referenced by Deployments to Vault.
 
 1. **Create a Secret**:
 ```yaml
@@ -234,24 +239,71 @@ spec:
 
 This will sync the `username` and `password` keys from the `my-app-secrets` secret to Vault at the path `secret/data/my-app` with the keys prefixed as `app_username` and `app_password`.
 
+### Direct Secret Sync
+
+This mode allows secrets to sync directly to Vault without requiring a Deployment.
+
+1. **Sync All Secret Keys**:
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: database-credentials
+  namespace: default
+  annotations:
+    vault-sync.io/path: "secret/data/database"
+type: Opaque
+data:
+  username: cG9zdGdyZXM=      # base64 encoded "postgres"
+  password: c3VwZXJzZWNyZXQ=  # base64 encoded "supersecret"
+  host: bG9jYWxob3N0        # base64 encoded "localhost"
+```
+
+This syncs all keys from the secret to `secret/data/database`.
+
+2. **Sync Specific Keys with Prefixes**:
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: api-credentials
+  namespace: default
+  annotations:
+    vault-sync.io/path: "secret/data/api-keys"
+    vault-sync.io/secrets: |
+      [
+        {
+          "name": "api-credentials",
+          "keys": ["api_key", "secret_key"],
+          "prefix": "prod_"
+        }
+      ]
+type: Opaque
+data:
+  api_key: YWJjZGVmZ2g=      # base64 encoded "abcdefgh"
+  secret_key: eHl6MTIz        # base64 encoded "xyz123"
+  debug_token: aW50ZXJuYWw=   # not synced (not in keys list)
+```
+
+This syncs only `api_key` and `secret_key` to `secret/data/api-keys` as `prod_api_key` and `prod_secret_key`.
+
 ### Annotations Reference
 
-The operator uses the following annotations to control secret synchronization:
+The operator uses the following annotations to control secret synchronization on both Deployments and Secrets:
 
 | Annotation | Required | Description | Example |
 |------------|----------|-------------|---------|
 | `vault-sync.io/path` | ✅ | Vault storage path (enables sync) | `"secret/data/my-app"` |
 | `vault-sync.io/secrets` | ❌ | Custom secret configuration (JSON) | See examples below |
-| `vault-sync.io/preserve-on-delete` | ❌ | Prevent deletion from Vault on deployment deletion | `"true"` |
+| `vault-sync.io/preserve-on-delete` | ❌ | Prevent deletion from Vault on resource deletion | `"true"` |
 | `vault-sync.io/reconcile` | ❌ | Periodic reconciliation interval (off by default) | `"5m"`, `"1h"`, `"off"` |
 | `vault-sync.io/rotation-check` | ❌ | Enable/disable secret rotation detection | `"enabled"`, `"disabled"` |
 
 ### Synchronization Modes
 
-The operator supports two synchronization modes:
+#### For Deployments
 
-#### Auto-Discovery Mode
-When no `vault-sync.io/secrets` annotation is provided, the operator automatically discovers all secrets referenced in the deployment pod template and writes each secret to its own sub-path.
+**Auto-Discovery Mode**: When no `vault-sync.io/secrets` annotation is provided, the operator automatically discovers all secrets referenced in the deployment pod template and writes each secret to its own sub-path.
 ```yaml
 metadata:
   annotations:
@@ -259,12 +311,11 @@ metadata:
     # All secrets referenced in pod template will be synced
 ```
 
-
 **Result**: Each secret gets its own sub-path:
 - `secret/data/my-app/my-app-secrets` → `{ "username": "...", "password": "..." }`
 - `secret/data/my-app/db-secrets` → `{ "host": "...", "port": "..." }`
-#### Custom Configuration Mode
-When `vault-sync.io/secrets` annotation is provided, all specified keys are written directly to the main vault path with optional prefixes.
+
+**Custom Configuration Mode**: When `vault-sync.io/secrets` annotation is provided, all specified keys are written directly to the main vault path with optional prefixes.
 ```yaml
 metadata:
   annotations:
@@ -286,6 +337,34 @@ metadata:
 
 **Result**: All keys written to the main path:
 - `secret/data/my-app` → `{ "db_username": "...", "db_password": "...", "token": "..." }`
+
+#### For Secrets
+
+**Sync All Keys Mode**: When only `vault-sync.io/path` is provided, all keys from the secret are synced.
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    vault-sync.io/path: "secret/data/database"
+```
+
+**Custom Configuration Mode**: When `vault-sync.io/secrets` annotation is provided, only specified keys are synced with optional prefixes.
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    vault-sync.io/path: "secret/data/api"
+    vault-sync.io/secrets: |
+      [
+        {
+          "name": "my-secret-name",
+          "keys": ["token", "key"],
+          "prefix": "prod_"
+        }
+      ]
+```
 
 #### Periodic Reconciliation
 Enable periodic reconciliation to automatically restore secrets that are accidentally deleted from Vault:
@@ -431,11 +510,11 @@ The operator supports the following command-line flags:
 
 ## Security Considerations
 
-1. **RBAC**: The operator only requires read access to Deployments and Secrets in the namespaces it operates in.
+1. **RBAC**: The operator requires read access to Deployments and Secrets, plus write access to update annotations for secret version tracking and finalizer management.
 
 2. **Vault Authentication**: Uses Kubernetes service account tokens for authentication with Vault.
 
-3. **Finalizers**: Uses finalizers to ensure cleanup of Vault secrets when deployments are deleted.
+3. **Finalizers**: Uses finalizers to ensure cleanup of Vault secrets when deployments or secrets are deleted.
 
 4. **Least Privilege**: Configure Vault policies to give the operator only the minimum required permissions.
 
