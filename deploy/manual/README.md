@@ -113,7 +113,7 @@ kubectl delete -f . --recursive
 
 ## Testing
 
-This operator uses deployment annotations. Create a test deployment with vault-sync annotations:
+This operator supports both Deployment and Secret annotations. Create a test deployment with vault-sync annotations:
 
 ```yaml
 apiVersion: apps/v1
@@ -144,3 +144,5 @@ spec:
 ```
 
 The operator will automatically discover and sync the `app-secret` to Vault at `secret/data/test-app/app-secret`.
+
+You can also use direct Secret sync by adding `vault-sync.io/path` to a Secret resource.

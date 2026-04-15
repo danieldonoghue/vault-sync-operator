@@ -137,9 +137,9 @@ These endpoints are automatically configured and can be used by Kubernetes for c
 The operator exposes Prometheus metrics on port `:8080` by default. Available metrics include:
 
 #### Sync Operation Metrics
-- `vault_sync_operator_sync_attempts_total`: Total number of secret sync attempts (labeled by namespace, deployment, result)
+- `vault_sync_operator_sync_attempts_total`: Total number of secret sync attempts (labeled by namespace, resource, result)
 - `vault_sync_operator_sync_duration_seconds`: Duration of secret sync operations in seconds
-- `vault_sync_operator_secrets_discovered`: Number of secrets auto-discovered in deployments
+- `vault_sync_operator_secrets_discovered`: Number of secrets auto-discovered from annotated resources
 
 #### Error Metrics
 - `vault_sync_operator_secret_not_found_errors_total`: Kubernetes secrets that couldn't be found
