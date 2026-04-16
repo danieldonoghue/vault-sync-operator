@@ -22,7 +22,7 @@ Complete guide to the GitHub Actions CI/CD pipeline for automated testing, build
 ## Quick Links
 
 - [Main README](../README.md) - Getting started and basic usage
-- [Examples](../examples/) - Example deployment configurations
+- [Examples](../examples/) - Deployment-based and direct Secret sync examples
 - [Configuration](../config/) - Kubernetes manifests and configuration files
 
 ## Architecture Overview
@@ -34,7 +34,7 @@ The Vault Sync Operator follows standard Kubernetes operator patterns:
 │                    Kubernetes Cluster                       │
 │                                                             │
 │  ┌─────────────────┐    ┌─────────────────┐                │
-│  │   Deployment    │    │   Deployment    │                │
+│  │   Deployment    │    │     Secret      │                │
 │  │   with Vault    │    │   with Vault    │                │
 │  │   Annotations   │    │   Annotations   │                │
 │  └─────────────────┘    └─────────────────┘                │
@@ -55,4 +55,4 @@ The Vault Sync Operator follows standard Kubernetes operator patterns:
             └─────────────────┘
 ```
 
-The operator watches for deployments with `vault-sync.io/path` annotations and automatically syncs referenced secrets to Vault using Kubernetes authentication.
+The operator watches both Deployments and Secrets with `vault-sync.io/path` annotations and syncs referenced secret data to Vault using Kubernetes authentication.

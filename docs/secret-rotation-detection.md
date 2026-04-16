@@ -4,7 +4,7 @@ The vault-sync-operator includes intelligent secret rotation detection to optimi
 
 ## How It Works
 
-The operator automatically tracks the `resourceVersion` of each Kubernetes Secret it syncs to Vault. When a reconciliation occurs, it compares the current secret versions with the last known versions stored in the deployment's annotations. Only when changes are detected will the operator perform a sync to Vault.
+The operator automatically tracks the `resourceVersion` of each Kubernetes Secret it syncs to Vault. When a reconciliation occurs, it compares current secret versions with the last known versions stored in the syncing resource's annotations (Deployment or Secret). Only when changes are detected will the operator perform a sync to Vault.
 
 ## Configuration
 
@@ -38,6 +38,19 @@ spec:
   # ... deployment spec
 ```
 
+The same annotation behavior applies to direct Secret sync mode:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-secret
+  annotations:
+    vault-sync.io/path: "secret/data/my-secret"
+    # rotation-check: enabled is the default
+type: Opaque
+```
+
 #### Disable Rotation Detection
 ```yaml
 apiVersion: apps/v1
@@ -58,7 +71,7 @@ When rotation detection is disabled, the operator will sync to Vault on every re
 1. **Reduced Vault Load**: Only syncs when secrets actually change
 2. **Faster Reconciliation**: Skips expensive Vault operations when no changes are detected
 3. **Lower Network Traffic**: Reduces unnecessary API calls to Vault
-4. **Better Resource Utilization**: Operator uses less CPU and memory for unchanged deployments
+4. **Better Resource Utilization**: Operator uses less CPU and memory for unchanged resources
 
 ## Monitoring
 
@@ -102,7 +115,7 @@ INFO no secret changes detected, skipping vault sync
 
 ### Version Tracking
 
-The operator stores secret versions in JSON format in the deployment annotation:
+The operator stores secret versions in JSON format in the syncing resource annotation (Deployment or Secret):
 
 ```json
 {
